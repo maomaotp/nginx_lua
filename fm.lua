@@ -16,9 +16,10 @@ http {
 			redis2_query zincrby $arg_optype $arg_score $arg_id;
 			redis2_pass backend;
 		}
-        location /redisquery{
+        location /zrange{
 			internal;
-			redis2_raw_queries $args $echo_request_body;
+			set_unescape_uri $query $arg_query;
+			redis2_raw_query $query;
 			redis2_pass backend;
 		}
         location /update_top{
@@ -26,6 +27,9 @@ http {
         }
         location /query_top{
 			content_by_lua_file "nginx_lua/query_top.lua";
+		}
+        location /querymysql{
+			content_by_lua_file "nginx_lua/query_mysql.lua";
 		}
     }
 }

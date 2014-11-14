@@ -1,5 +1,6 @@
 TURN_NUMBER = 20     --每页条数
 local parser = require "redis.parser"
+local cjson = require "cjson"
 
 --ngx.req.read_body()
 --local args, err = ngx.req.get_post_args()
@@ -20,28 +21,24 @@ local parser = require "redis.parser"
 --
 --ngx.say(">>>>>>" .. page .. ">>>>" .. turn_num)
 
-local reqs = {
-	--{"zrange", optype, page, turn_num},
-	{"zrange", "order", 0, 20},
-}
-
-local raw_reqs = {}
-for i, req in ipairs(reqs) do
-	table.insert(raw_reqs, parser.build_query(req))
-end
 
 local res = ngx.location.capture(
-	"/redisquery?" .. #reqs, { body = table.concat(raw_reqs, "") } )
+	"/zrange", { args = { query = "zrange order 0 -1\r\n"} }
+	--"/zrange", { args = { query = "ping\t\n"} }
+)
+--local reqs = {"zrange", "order", 0, -1}
+local replies = parser.parse_reply(res.body)
+ngx.say(cjson.encode(res.body))
+ngx.say(res.body)
 
-if res.status ~= 200 or not res.body then
-	ngx.log(ngx.ERR, "failed to query redis")
-	ngx.exit(500)
-end
+--if res.status ~= 200 or not res.body then
+--	ngx.log(ngx.ERR, "failed to query redis")
+--	ngx.exit(500)
+--end
 
-local replies = parser.parse_replies(res.body, #reqs)
-for i, reply in pairs(replies) do
-	ngx.say(reply[1])
-end
+--for i, reply in pairs(res.body) do
+--	 ngx.say(reply[1])
+--end
 
 
 
