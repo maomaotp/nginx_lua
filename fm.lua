@@ -19,14 +19,14 @@ http {
         location /zrange{
 			internal;
 			set_unescape_uri $query $arg_query;
-			redis2_raw_query $query;
+			redis2_raw_queries 1 $query;
 			redis2_pass backend;
 		}
         location /update_top{
            content_by_lua_file "nginx_lua/update_top.lua";
         }
         location /query_top{
-			content_by_lua_file "nginx_lua/query_top.lua";
+			content_by_lua_file "nginx_lua/redis.lua";
 		}
         location /querymysql{
 			content_by_lua_file "nginx_lua/query_mysql.lua";
