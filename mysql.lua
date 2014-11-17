@@ -66,20 +66,23 @@ function close_mysql()
 end
 
 --查询电台信息
-function query_fm(city_name, radio_level)
-	if(city_name ~= nil) then
-		queryfm_sql = string.format( "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo from Radio_Info where cityName='%s' and radioState=0 limit %s,%s", city_name, start, page)
-	elseif(radio_level ~= nil) then
-		queryfm_sql = string.format( "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo from Radio_Info where radioLevel='%s' and radioState=0 limit %s,%s", radio_level, start, page)
+function query_fm(city_name, radio_level, classification)
+	if( city_name ~= nil ) then
+		queryfm_sql = string.format( "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where cityName='%s' and radioState=0 limit %s,%s", city_name, start, page)
+	elseif( radio_level ~= nil ) then
+		queryfm_sql = string.format( "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where radioLevel='%s' and radioState=0 limit %s,%s", radio_level, start, page)
+	elseif( classification~= nil ) then
+		queryfm_sql = string.format( "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where classification='%s' and radioState=0 limit %s,%s", classification, start, page)
 	else
-		--ngx.say("queryFm: error args")
 		return 10003
 	end
 	
 	local res, err, errno, sqlstate = db:query(queryfm_sql, 20)
 	if not res then
-	    --ngx.say("bad result: ", err, ": ", errno, ": ", sqlstate, ".")
 	    return 10004
+	end
+	if res == ngx.null then
+		return 10005
 	end
 
 	ngx.say(cjson.encode(res))
@@ -88,15 +91,16 @@ end
 --查询市区信息
 function query_city(provinceSpell)
 	if not provinceSpell then
-		--ngx.say("queryCity:error args")
-		return 10005
+		return 10006
 	end
 	
 	local queryCity_sql = string.format("select cityName from Radio_Info where provinceSpell='%s' group by cityName limit %s,%s", provinceSpell, start, page)
 	local res, err, errno, sqlstate = db:query(queryCity_sql, 20)
 	if not res then
-	    --ngx.say("bad result: ", err, ": ", errno, ": ", sqlstate, ".")
-	    return 10006
+	    return 10007
+	end
+	if res == ngx.null then
+		return 10005
 	end
 
 	ngx.say(cjson.encode(res))
@@ -109,40 +113,95 @@ function search_fm(fm_name)
 	
 	local res, err, errno, sqlstate = db:query(searchFm_sql, 20)
 	if not res then
-	    --ngx.say("bad result: ", err, ": ", errno, ": ", sqlstate, ".")
-	    return 10007
+	    return 10008
 	end
+	if res == ngx.null then
+		return 10005
+	end
+
 	ngx.say(cjson.encode(res))
+	return 0
+end
+
+--查询排行
+function query_top(top_name)
+	local query_sql
+	if (top_name == "appoint") then
+		query_sql = string.format("select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo from Radio_Info where radioState=0 order by playTime desc limit %s,%s", start, page)
+	elseif (top_name == "broadcast") then
+		query_sql = string.format("select A.ProgramID,A.RadioID,A.ProgramName,A.Introduction,B.playTime,C.nameCn from Program_Info A,Program_Time B,Radio_Info C where B.ProgramID=A.ProgramID and C.RadioID=A.RadioID order by orderNumber desc limit %s,%s", start, page)
+	else
+		return 10011
+	end
+
+	ngx.say(query_sql)
+	local res, err, errno, sqlstate = db:query(query_sql) 
+	if not res then
+		ngx.say("bad result: ", err)
+		return 10010
+	end
+	if res == ngx.null then
+		return 10005
+	end
+
+	ngx.say(cjson.encode(res))
+	return 0
+end
+--更新排行
+function update_top(top_name, id, number)
+	local update_sql
+	local tmp = tonumber(number)
+	if ( (id==nil) or (tmp==nil) ) then
+		return 10012	
+	end
+	if (top_name == "appoint") then
+		update_sql = string.format("update Radio_Info set playTime=playTime+%d where radioId='%s'", tmp, id)
+	elseif (top_name == "broadcast") then
+		update_sql = string.format("update Program_Info set orderNumber=orderNumber+%d where ProgramID='%s'", tmp, id)
+	else
+		return 10013
+	end
+
+	local res, err, errno, sqlstate = db:send_query(update_sql) 
+	if not res then
+		return 10010
+	end
+
 	return 0
 end
 
 --查找串播单
 function query_show(radioId)
 	if not radioId then
-		--ngx.say("queryShow:error args")
 		return 10008
 	end
 
 	local queryShow_sql = string.format("select A.RadioID,A.ProgramName,A.Introduction,A.WebSite,B.createTime,B.updateTime,B.playTime,B.Day,B.PlayState from Program_Info A,Program_Time B where B.ProgramID=A.ProgramID and A.radioId='%s' and B.Day=CURDATE() and A.programState=0 group by A.ProgramName order by B.playTime limit %s,%s", radioId, start, page)
 	local res, err, errno, sqlstate = db:query(queryShow_sql, 20)
 	if not res then
-	    --ngx.say("bad result: ", err, ": ", errno, ": ", sqlstate, ".")
 	    return 10009
 	end
+	if res == ngx.null then
+		return 10005
+	end
+
 	ngx.say(cjson.encode(res))
 	return 0
 end
 
 function error_res(err_code)	
 	local describe = "describe"
-	local res_json = {errorId=err_code, desc = describe}
+	local res_json = {
+		errorId = err_code, desc = describe
+	}
+	close_mysql()
 	ngx.say(cjson.encode(res_json))
 end
 
 --函数入口
 function main()
 	local res_code
-	res_code = init_mysql()
+	local res_code = init_mysql()
 	if ( res_code ~= 0 ) then
 		error_res(res_code)
 		return
@@ -151,14 +210,15 @@ function main()
 	res_code = parse_postargs()
 	if( res_code ~= 0) then
 		error_res(res_code)
-		return 
+		return
 	end
 
 	--查询电台信息
 	if (opname == "queryFm") then
 		local city_name = args["cityName"]	
 		local radio_level = args["radioLevel"]	
-		res_code = query_fm(city_name, radio_level)
+		local classification = args["classification"]
+		local res_code = query_fm(city_name, radio_level, classification)
 		if ( res_code ~= 0 ) then
 			error_res(res_code)
 			return
@@ -167,7 +227,7 @@ function main()
 	--查询市区信息	
 	elseif (opname == "queryCity") then
 		local provinceSpell = args["provinceSpell"]	
-		res_code = query_city(provinceSpell)
+		local res_code = query_city(provinceSpell)
 		if ( res_code ~= 0 ) then
 			error_res(res_code)
 			return
@@ -185,12 +245,29 @@ function main()
 	--查询串播单	
 	elseif (opname == "queryShow") then
 		local radioId = args["radioId"]
-		res_code = query_show(radioId)
+		local res_code = query_show(radioId)
 		if ( res_code ~= 0 ) then
 			error_res(res_code)
 			return
 		end
-
+	--查询排行榜信息
+	elseif (opname == "queryTop") then
+		local top_name = args["key"]
+		local res_code = query_top(top_name)
+		if (res_code ~= 0) then
+			error_res(res_code)
+			return
+		end
+	elseif (opname == "updateTop") then
+		local top_name = args["key"]
+		local id = args["id"]
+		local number = args["number"]
+		local res_code = update_top(top_name, id, number)
+		if (res_code ~= 0) then
+			error_res(res_code)
+			return
+		end
+	
 	else
 		error_res(10000)
 		return
