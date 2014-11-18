@@ -1,22 +1,29 @@
 local cjson = require "cjson"
 local mysql = require "resty.mysql"
+local MYSQL_HOST = "123.57.41.242"
+local MYSQL_POST = 3306
+local MYSQL_DATABASE = "test"
+local MYSQL_USER = "dba"
+local MYSQL_PASSWD = "123456"
+
+local DB_TIMEOUT = 2000  --2 sec
+local MAX_SIZE = 1024*1024
 
 --初始化mysql连接
 function init_mysql()
 	db = mysql:new()
 	if not db then
-	    --ngx.say("failed to instantiate mysql: ", err)
 	    return 10001
 	end
 	
-	db:set_timeout(2000) -- 1 sec
+	db:set_timeout(DB_TIMEOUT)
 	local ok, err, errno, sqlstate = db:connect{
-	    host = "123.57.41.242",
-	    port = 3306,
-	    database = "test",
-	    user = "dba",
-	    password = "123456",
-	    max_packet_size = 1024 * 1024
+	    host = MYSQL_HOST,
+	    port = MYSQL_POST,
+	    database = MYSQL_DATABASE,
+	    user = MYSQL_USER,
+	    password = MYSQL_PASSWD,
+	    max_packet_size = MAX_SIZE
 	}
 	
 	if not ok then
@@ -77,12 +84,9 @@ function query_fm(city_name, radio_level, classification)
 		return 10003
 	end
 	
-	local res, err, errno, sqlstate = db:query(queryfm_sql, 20)
+	local res, err, errno, sqlstate = db:query(queryfm_sql)
 	if not res then
 	    return 10004
-	end
-	if res == ngx.null then
-		return 10005
 	end
 
 	ngx.say(cjson.encode(res))
@@ -95,13 +99,11 @@ function query_city(provinceSpell)
 	end
 	
 	local queryCity_sql = string.format("select cityName from Radio_Info where provinceSpell='%s' group by cityName limit %s,%s", provinceSpell, start, page)
-	local res, err, errno, sqlstate = db:query(queryCity_sql, 20)
+	local res, err, errno, sqlstate = db:query(queryCity_sql)
 	if not res then
 	    return 10007
 	end
-	if res == ngx.null then
-		return 10005
-	end
+	--ngx.say(queryCity_sql)
 
 	ngx.say(cjson.encode(res))
 	return 0
@@ -109,13 +111,13 @@ end
 
 --搜索电台信息
 function search_fm(fm_name)
-	local searchFm_sql = string.format("select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo from Radio_Info where radioState=0 and (nameCn like '%%%s%%' or nameEn like '%%%s%%') limit %s,%s", fm_name, fm_name, start, page)
+	local searchFm_sql = string.format("select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where radioState=0 and (nameCn like '%%%s%%' or nameEn like '%%%s%%') limit %s,%s", fm_name, fm_name, start, page)
 	
-	local res, err, errno, sqlstate = db:query(searchFm_sql, 20)
+	local res, err, errno, sqlstate = db:query(searchFm_sql)
 	if not res then
 	    return 10008
 	end
-	if res == ngx.null then
+	if (res == ngx.null) then
 		return 10005
 	end
 
@@ -126,10 +128,10 @@ end
 --查询排行
 function query_top(top_name)
 	local query_sql
-	if (top_name == "appoint") then
+	if (top_name == "broadcast") then
 		query_sql = string.format("select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo from Radio_Info where radioState=0 order by playTime desc limit %s,%s", start, page)
-	elseif (top_name == "broadcast") then
-		query_sql = string.format("select A.ProgramID,A.RadioID,A.ProgramName,A.Introduction,B.playTime,C.nameCn from Program_Info A,Program_Time B,Radio_Info C where B.ProgramID=A.ProgramID and C.RadioID=A.RadioID order by orderNumber desc limit %s,%s", start, page)
+	elseif (top_name == "appoint") then
+		query_sql = string.format("select A.programID,A.radioID,A.programName,A.introduction,B.playTime,C.nameCn from Program_Info A,Program_Time B,Radio_Info C where B.ProgramID=A.ProgramID and C.RadioID=A.RadioID group by A.programID order by orderNumber desc limit %s,%s", start, page)
 	else
 		return 10011
 	end
@@ -137,7 +139,7 @@ function query_top(top_name)
 	ngx.say(query_sql)
 	local res, err, errno, sqlstate = db:query(query_sql) 
 	if not res then
-		ngx.say("bad result: ", err)
+		--ngx.say("bad result: ", err)
 		return 10010
 	end
 	if res == ngx.null then
@@ -150,17 +152,21 @@ end
 --更新排行
 function update_top(top_name, id, number)
 	local update_sql
-	local tmp = tonumber(number)
-	if ( (id==nil) or (tmp==nil) ) then
-		return 10012	
-	end
-	if (top_name == "appoint") then
-		update_sql = string.format("update Radio_Info set playTime=playTime+%d where radioId='%s'", tmp, id)
-	elseif (top_name == "broadcast") then
-		update_sql = string.format("update Program_Info set orderNumber=orderNumber+%d where ProgramID='%s'", tmp, id)
+	--local tmp = tonumber(number)
+
+	if not id then return 10012 end
+	if not number then number=1 end	
+	if (type(number) == "string") then number = tonumber(number) end
+
+	if (top_name == "broadcast") then
+		update_sql = string.format("update Radio_Info set playTime=playTime+%d where radioId='%s'", number, id)
+	elseif (top_name == "appoint") then
+		update_sql = string.format("update Program_Info set orderNumber=orderNumber+%d where ProgramID='%s'", number, id)
 	else
 		return 10013
 	end
+
+	--ngx.say(update_sql)
 
 	local res, err, errno, sqlstate = db:send_query(update_sql) 
 	if not res then
@@ -177,11 +183,11 @@ function query_show(radioId)
 	end
 
 	local queryShow_sql = string.format("select A.RadioID,A.ProgramName,A.Introduction,A.WebSite,B.createTime,B.updateTime,B.playTime,B.Day,B.PlayState from Program_Info A,Program_Time B where B.ProgramID=A.ProgramID and A.radioId='%s' and B.Day=CURDATE() and A.programState=0 group by A.ProgramName order by B.playTime limit %s,%s", radioId, start, page)
-	local res, err, errno, sqlstate = db:query(queryShow_sql, 20)
+	local res, err, errno, sqlstate = db:query(queryShow_sql)
 	if not res then
 	    return 10009
 	end
-	if res == ngx.null then
+	if (res == ngx.null) then
 		return 10005
 	end
 
@@ -206,7 +212,7 @@ function main()
 		error_res(res_code)
 		return
 	end
-
+	--解析post参数
 	res_code = parse_postargs()
 	if( res_code ~= 0) then
 		error_res(res_code)

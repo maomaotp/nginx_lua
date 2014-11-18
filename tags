@@ -1,0 +1,24 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+close_mysql	mysql.lua	/^function close_mysql()$/;"	f
+close_redis	redis.lua	/^function close_redis()$/;"	f
+error_res	mysql.lua	/^function error_res(err_code)	$/;"	f
+error_res	redis.lua	/^function error_res(err_code)	$/;"	f
+init_mysql	mysql.lua	/^function init_mysql()$/;"	f
+init_redis	redis.lua	/^function init_redis()$/;"	f
+main	mysql.lua	/^function main()$/;"	f
+main	redis.lua	/^function main()$/;"	f
+parse_postargs	mysql.lua	/^function parse_postargs()$/;"	f
+parse_postargs	redis.lua	/^function parse_postargs()$/;"	f
+query_city	mysql.lua	/^function query_city(provinceSpell)$/;"	f
+query_fm	mysql.lua	/^function query_fm(city_name, radio_level, classification)$/;"	f
+query_show	mysql.lua	/^function query_show(radioId)$/;"	f
+query_top	mysql.lua	/^function query_top(top_name)$/;"	f
+query_top	redis.lua	/^function query_top(key)$/;"	f
+search_fm	mysql.lua	/^function search_fm(fm_name)$/;"	f
+update_top	mysql.lua	/^function update_top(top_name, id, number)$/;"	f
+update_top	redis.lua	/^function update_top(key, id, score)$/;"	f

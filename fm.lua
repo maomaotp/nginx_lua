@@ -14,7 +14,7 @@ http {
         location /query_top{
 			content_by_lua_file "nginx_lua/redis.lua";
 		}
-        location /querymysql{
+        location /lingbanfm{
 			content_by_lua_file "nginx_lua/mysql.lua";
 		}
     }
