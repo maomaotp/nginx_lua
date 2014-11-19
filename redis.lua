@@ -54,6 +54,8 @@ function parse_postargs()
 	--解析翻页参数
 	start = tonumber(args["start"])
 	page = tonumber(args["page"])
+	ngx.say(">>>" .. args["start"] .. ">>>" .. args["type"].. ">>>" .. args["opname"])
+
 	if not start then start = 0 end
 	if not page then page = -1 end
 	
