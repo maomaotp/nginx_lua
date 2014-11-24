@@ -136,7 +136,7 @@ function query_top(top_name)
 		return 10011
 	end
 
-	ngx.say(query_sql)
+	--ngx.say(query_sql)
 	local res, err, errno, sqlstate = db:query(query_sql) 
 	if not res then
 		--ngx.say("bad result: ", err)

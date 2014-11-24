@@ -45,6 +45,7 @@ end
 
 function parse_postargs()
 	ngx.req.read_body()
+	ngx.say("test");
 	args = ngx.req.get_post_args()
 	if not args then
 		--ngx.say("failed to get post args: ", err)
