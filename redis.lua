@@ -78,10 +78,6 @@ function query_top(key)
         return 10000
     end
 
-    if res == ngx.null then
-        ngx.say("dog not found.")
-        return 10000
-    end
 	ngx.say( cjson.encode(res) )
 	return 0
 end

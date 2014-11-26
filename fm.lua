@@ -5,13 +5,16 @@ events {
 	worker_connections 1024;
 }
 http {
-	upstream backend {
-		server 127.0.0.1:6379;
+	upstream {
+		server 127.0.0.1:8080;
+		server 123.57.41.242:8080;
 	}
 
-	default_type application/octet-stream;
+	#default_type application/octet-stream;
+	default_type application/json;
 	server {
 		listen 8080;
+		server_name http://192.168.1.120:8080;
         location /query_top{
 			content_by_lua_file "nginx_lua/redis.lua";
 		}
@@ -19,14 +22,13 @@ http {
 			content_by_lua_file "nginx_lua/mysql.lua";
 		}
 		location /test{
-			content_by_lua '
-				ngx.say("liuq test")
-				ngx.req.read_body()
-				local args, err = ngx.req.get_post_args()
-				for key, val in pairs(args) do
-					ngx.say(key .. ":" .. args[key])
-				end
-			';
+			content_by_lua_file "nginx_lua/json.lua";
 		}
     }
+	server {
+		listen 8090;
+		location /post{
+			content_by_lua_file "nginx_lua/json.lua";
+		}
+	}
 }
