@@ -5,7 +5,7 @@ events {
 	worker_connections 1024;
 }
 http {
-	upstream {
+	upstream backend{
 		server 127.0.0.1:8080;
 		server 123.57.41.242:8080;
 	}
@@ -14,7 +14,7 @@ http {
 	default_type application/json;
 	server {
 		listen 8080;
-		server_name http://192.168.1.120:8080;
+#server_name "http://192.168.1.120:8080";
         location /query_top{
 			content_by_lua_file "nginx_lua/redis.lua";
 		}
