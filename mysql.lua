@@ -2,7 +2,7 @@ local cjson = require "cjson"
 local mysql = require "resty.mysql"
 local MYSQL_HOST = "123.57.41.242"
 local MYSQL_POST = 3306
-local MYSQL_DATABASE = "fm"
+local MYSQL_DATABASE = "test"
 local MYSQL_USER = "lingbanfm"
 local MYSQL_PASSWD = "lingban2014"
 
@@ -57,18 +57,19 @@ function parse_postargs()
 end
 
 function close_mysql()
-	local ok, err = db:close()
-	if not ok then
-	    ngx.say("failed to close: ", err)
-	    return 10010
-	end
+	--关闭连接
+--	local ok, err = db:close()
+--	if not ok then
+--	    ngx.say("failed to close: ", err)
+--	    return 10010
+--	end
 	-- put it into the connection pool of size 100,
 	-- with 10 seconds max idle timeout
-	--local ok, err = db:set_keepalive(10000, 100)
-	--if not ok then
-	--    ngx.say("failed to set keepalive: ", err)
-	--    return
-	--end
+	local ok, err = db:set_keepalive(30000, 100)
+	if not ok then
+	    ngx.say("failed to set keepalive: ", err)
+	    return
+	end
 	return 0
 end
 
@@ -139,7 +140,7 @@ function query_top(top_name)
 	--ngx.say(query_sql)
 	local res, err, errno, sqlstate = db:query(query_sql) 
 	if not res then
-		--ngx.say("bad result: ", err)
+		ngx.say("bad result: ", err)
 		return 10010
 	end
 	if res == ngx.null then
