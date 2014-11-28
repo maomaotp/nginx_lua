@@ -1,6 +1,9 @@
 worker_processes  2;
-error_log logs/error.log error;
 
+error_log logs/error.log error;
+pid logs/nginx.pid;
+
+#工作模式及连接上线
 events {
 	use epoll;
 	worker_connections 2048;

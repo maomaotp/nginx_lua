@@ -2,9 +2,9 @@ local cjson = require "cjson"
 local mysql = require "resty.mysql"
 local MYSQL_HOST = "123.57.41.242"
 local MYSQL_POST = 3306
-local MYSQL_DATABASE = "test"
-local MYSQL_USER = "dba"
-local MYSQL_PASSWD = "123456"
+local MYSQL_DATABASE = "fm"
+local MYSQL_USER = "lingbanfm"
+local MYSQL_PASSWD = "lingban2014"
 
 local DB_TIMEOUT = 2000  --2 sec
 local MAX_SIZE = 1024*1024

@@ -9,11 +9,14 @@ close_redis	redis.lua	/^function close_redis()$/;"	f
 error_res	mysql.lua	/^function error_res(err_code)	$/;"	f
 error_res	redis.lua	/^function error_res(err_code)	$/;"	f
 init_mysql	mysql.lua	/^function init_mysql()$/;"	f
+init_redis	json.lua	/^function init_redis()$/;"	f
 init_redis	redis.lua	/^function init_redis()$/;"	f
+main	json.lua	/^function main()$/;"	f
 main	mysql.lua	/^function main()$/;"	f
 main	redis.lua	/^function main()$/;"	f
 parse_postargs	mysql.lua	/^function parse_postargs()$/;"	f
 parse_postargs	redis.lua	/^function parse_postargs()$/;"	f
+query_all	json.lua	/^function query_all()$/;"	f
 query_city	mysql.lua	/^function query_city(provinceSpell)$/;"	f
 query_fm	mysql.lua	/^function query_fm(city_name, radio_level, classification)$/;"	f
 query_show	mysql.lua	/^function query_show(radioId)$/;"	f
