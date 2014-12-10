@@ -2,6 +2,7 @@ worker_processes  2;
 
 error_log logs/error.log error;
 pid logs/nginx.pid;
+user root;
 
 events {
 	use epoll;
@@ -9,6 +10,8 @@ events {
 }
 http {
 	default_type application/json;
+	#限制一个IP最多的并发连接数
+	limit_conn_zone $binary_remote_addr zone=slimits:5m;
 
 	log_format main '[$time_local] $remote_addr $request_uri '
 					'[$http_user_agent] $bytes_sent $request_time '
@@ -22,6 +25,16 @@ http {
 	}
 	server {
 		listen 8080;
+		#开启ssl加密
+		ssl on;
+		ssl_certificate ../conf/ca.crt;
+		ssl_certificate_key ../conf/server.key;
+		limit_conn slimits 5;
+
+		if ($request_method !~ ^(GET|POST)$ ) {
+			return 444;
+		}
+
         location /query_top{
 			content_by_lua_file "nginx_lua/redis.lua";
 		}
@@ -34,8 +47,9 @@ http {
     }
 	server {
 		listen 8090;
-		location /post{
-			content_by_lua_file "nginx_lua/json.lua";
+		limit_conn slimits 5;
+		location /user{
+			content_by_lua_file "nginx_lua/user.lua";
 		}
 	}
 }

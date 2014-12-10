@@ -220,65 +220,26 @@ function main()
 		return
 	end
 
-	--查询电台信息
-	if (opname == "queryFm") then
-		local city_name = args["cityName"]	
-		local radio_level = args["radioLevel"]	
-		local classification = args["classification"]
-		local res_code = query_fm(city_name, radio_level, classification)
-		if ( res_code ~= 0 ) then
-			error_res(res_code)
-			return
-		end
-	
-	--查询市区信息	
-	elseif (opname == "queryCity") then
-		local provinceSpell = args["provinceSpell"]	
-		local res_code = query_city(provinceSpell)
-		if ( res_code ~= 0 ) then
-			error_res(res_code)
-			return
-		end
+	--用户注册
+	if (opname == "register") then
+		local password = args["password"]	
+		local sex = args["sex"]
+		local nickname = args["nickname"]
+		local identify = args["identify"]
+		local telephone = args["telephone"]
+		local email = args["email"]
+		local registerType = args["registerType"]
 
-	--搜索电台信息
-	elseif (opname == "searchFm") then
-		local fm_name = args["fmName"]
-		res_code = search_fm(fm_name)
-		if ( res_code ~= 0 ) then
-			error_res(res_code)
-			return
+		if not password or 
+				not sex or 
+				not nickname or 
+				not identify or 
+				not telephone or 
+				not email or 
+				not registerType then
+			nginx.say("error")
+			return	
 		end
-	
-	--查询串播单	
-	elseif (opname == "queryShow") then
-		local radioId = args["radioId"]
-		local res_code = query_show(radioId)
-		if ( res_code ~= 0 ) then
-			error_res(res_code)
-			return
-		end
-	--查询排行榜信息
-	elseif (opname == "queryTop") then
-		local top_name = args["key"]
-		local res_code = query_top(top_name)
-		if (res_code ~= 0) then
-			error_res(res_code)
-			return
-		end
-	elseif (opname == "updateTop") then
-		local top_name = args["key"]
-		local id = args["id"]
-		local number = args["number"]
-		local res_code = update_top(top_name, id, number)
-		if (res_code ~= 0) then
-			error_res(res_code)
-			return
-		end
-	
-	else
-		error_res(10000)
-		return
-	end
 	
 	close_mysql()
 end
