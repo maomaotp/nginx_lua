@@ -2,7 +2,7 @@ local cjson = require "cjson"
 local mysql = require "resty.mysql"
 local MYSQL_HOST = "123.57.41.242"
 local MYSQL_POST = 3306
-local MYSQL_DATABASE = "test"
+local MYSQL_DATABASE = "fm_appserver"
 local MYSQL_USER = "lingbanfm"
 local MYSQL_PASSWD = "lingban2014"
 
@@ -38,7 +38,7 @@ function parse_postargs()
 	ngx.req.read_body()
 	args = ngx.req.get_post_args()
 	if not args then
-		--ngx.say("failed to get post args: ", err)
+		ngx.say("failed to get post args: ", err)
 		return 10002 
 	end
 	
@@ -73,127 +73,23 @@ function close_mysql()
 	return 0
 end
 
---查询电台信息
-function query_fm(city_name, radio_level, classification)
-	if( city_name ~= nil ) then
-		queryfm_sql = string.format( "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where cityName='%s' and radioState=0 limit %s,%s", city_name, start, page)
-	elseif( radio_level ~= nil ) then
-		queryfm_sql = string.format( "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where radioLevel='%s' and radioState=0 limit %s,%s", radio_level, start, page)
-	elseif( classification~= nil ) then
-		queryfm_sql = string.format( "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where classification='%s' and radioState=0 limit %s,%s", classification, start, page)
-	else
-		return 10003
+function user_register(userId, password, nickname)	
+	if not userId or not password or not nickname then
+		ngx.say("args == nil")
+		return -1
 	end
-	
-	local res, err, errno, sqlstate = db:query(queryfm_sql)
+	if (userId == "" or password == "" or nickname == "") then
+		ngx.say("args == ''")
+		return -1
+	end
+
+	local register_sql = string.format("insert into u_userInfo (userId,password,nickname) values('%s','%s','%s')", userId, password, nickname)
+	ngx.say(register_sql)
+	local res, err, errno, sqlstate = db:query(register_sql)
 	if not res then
-	    return 10004
+		ngx.say("err: ", err)
+	    return -1
 	end
-
-	ngx.say(cjson.encode(res))
-	return 0
-end
---查询市区信息
-function query_city(provinceSpell)
-	if not provinceSpell then
-		return 10006
-	end
-	
-	local queryCity_sql = string.format("select cityName from Radio_Info where provinceSpell='%s' group by cityName limit %s,%s", provinceSpell, start, page)
-	local res, err, errno, sqlstate = db:query(queryCity_sql)
-	if not res then
-	    return 10007
-	end
-	--ngx.say(queryCity_sql)
-
-	ngx.say(cjson.encode(res))
-	return 0
-end
-
---搜索电台信息
-function search_fm(fm_name)
-	local searchFm_sql = string.format("select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where radioState=0 and (nameCn like '%%%s%%' or nameEn like '%%%s%%') limit %s,%s", fm_name, fm_name, start, page)
-	
-	local res, err, errno, sqlstate = db:query(searchFm_sql)
-	if not res then
-	    return 10008
-	end
-	if (res == ngx.null) then
-		return 10005
-	end
-
-	ngx.say(cjson.encode(res))
-	return 0
-end
-
---查询排行
-function query_top(top_name)
-	local query_sql
-	if (top_name == "broadcast") then
-		query_sql = string.format("select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo from Radio_Info where radioState=0 order by playTime desc limit %s,%s", start, page)
-	elseif (top_name == "appoint") then
-		query_sql = string.format("select A.programID,A.radioID,A.programName,A.introduction,B.playTime,C.nameCn from Program_Info A,Program_Time B,Radio_Info C where B.ProgramID=A.ProgramID and C.RadioID=A.RadioID group by A.programID order by orderNumber desc limit %s,%s", start, page)
-	else
-		return 10011
-	end
-
-	--ngx.say(query_sql)
-	local res, err, errno, sqlstate = db:query(query_sql) 
-	if not res then
-		ngx.say("bad result: ", err)
-		return 10010
-	end
-	if res == ngx.null then
-		return 10005
-	end
-
-	ngx.say(cjson.encode(res))
-	return 0
-end
---更新排行
-function update_top(top_name, id, number)
-	local update_sql
-	--local tmp = tonumber(number)
-
-	if not id then return 10012 end
-	if not number then number=1 end	
-	if (type(number) == "string") then number = tonumber(number) end
-
-	if (top_name == "broadcast") then
-		update_sql = string.format("update Radio_Info set duration=duration+%d where radioId='%s'", number, id)
-	elseif (top_name == "appoint") then
-		update_sql = string.format("update Program_Info set orderNumber=orderNumber+%d where ProgramID='%s'", number, id)
-	else
-		return 10013
-	end
-
-	--ngx.say(update_sql)
-
-	local res, err, errno, sqlstate = db:send_query(update_sql) 
-	if not res then
-		return 10010
-	end
-
-	return 0
-end
-
---查找串播单
-function query_show(radioId)
-	if not radioId then
-		return 10008
-	end
-
-	local queryShow_sql = string.format("select A.RadioID,A.ProgramID,A.ProgramName,A.Introduction,A.WebSite,B.createTime,B.updateTime,B.playTime,B.Day,B.PlayState from Program_Info A,Program_Time B where B.ProgramID=A.ProgramID and A.radioId='%s' and B.Day=CURDATE() and A.programState=0 group by A.ProgramName order by B.playTime limit %s,%s", radioId, start, page)
-	local res, err, errno, sqlstate = db:query(queryShow_sql)
-	if not res then
-	    return 10009
-	end
-	if (res == ngx.null) then
-		return 10005
-	end
-
-	ngx.say(cjson.encode(res))
-	return 0
 end
 
 function error_res(err_code)	
@@ -223,23 +119,13 @@ function main()
 	--用户注册
 	if (opname == "register") then
 		local password = args["password"]	
-		local sex = args["sex"]
 		local nickname = args["nickname"]
-		local identify = args["identify"]
-		local telephone = args["telephone"]
-		local email = args["email"]
-		local registerType = args["registerType"]
-
-		if not password or 
-				not sex or 
-				not nickname or 
-				not identify or 
-				not telephone or 
-				not email or 
-				not registerType then
-			nginx.say("error")
-			return	
-		end
+		local userId = args["userId"]
+		ngx.say("password= ", password)
+		ngx.say("nickname= ", nickname)
+		ngx.say("userId= ", userId)
+		user_register(userId, password, nickname)
+	end
 	
 	close_mysql()
 end

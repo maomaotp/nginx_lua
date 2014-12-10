@@ -13,6 +13,11 @@ http {
 	#限制一个IP最多的并发连接数
 	limit_conn_zone $binary_remote_addr zone=slimits:5m;
 
+	#开启ssl加密
+	ssl on;
+	ssl_certificate ../conf/ca.crt;
+	ssl_certificate_key ../conf/server.key;
+
 	log_format main '[$time_local] $remote_addr $request_uri '
 					'[$http_user_agent] $bytes_sent $request_time '
 					'"$request_body" $host $status';
@@ -25,10 +30,6 @@ http {
 	}
 	server {
 		listen 8080;
-		#开启ssl加密
-		ssl on;
-		ssl_certificate ../conf/ca.crt;
-		ssl_certificate_key ../conf/server.key;
 		limit_conn slimits 5;
 
 		if ($request_method !~ ^(GET|POST)$ ) {
