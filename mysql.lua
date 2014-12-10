@@ -132,7 +132,7 @@ function query_top(top_name)
 	if (top_name == "broadcast") then
 		query_sql = string.format("select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo from Radio_Info where radioState=0 order by duration desc limit %s,%s", start, page)
 	elseif (top_name == "appoint") then
-		query_sql = string.format("select A.programID,A.radioID,A.programName,A.introduction,B.duration,C.nameCn from Program_Info A,Program_Time B,Radio_Info C where B.ProgramID=A.ProgramID and C.RadioID=A.RadioID group by A.programID order by orderNumber desc limit %s,%s", start, page)
+		query_sql = string.format("select A.programID,A.radioID,A.programName,A.introduction,B.playtime,C.nameCn from Program_Info A,Program_Time B,Radio_Info C where B.ProgramID=A.ProgramID and C.RadioID=A.RadioID group by A.programID order by orderNumber desc limit %s,%s", start, page)
 	else
 		return 10011
 	end
