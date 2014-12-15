@@ -23,7 +23,7 @@ http {
 					'"$request_body" $host $status';
 	access_log logs/access.log main;
 
-	keepalive_timeout 120;
+	keepalive_timeout 1200;
 	upstream fmserver{
 		server 192.168.1.120:8080 weight=2;
 		server 192.168.1.120:8090 weight=2;
@@ -50,7 +50,10 @@ http {
 		listen 8090;
 		limit_conn slimits 5;
 		location /user{
-			content_by_lua_file "nginx_lua/user.lua";
+			content_by_lua_file "nginx_lua/fm3_user.lua";
+		}
+		location /fm{
+			content_by_lua_file "nginx_lua/fm3_recommend.lua";
 		}
 	}
 }

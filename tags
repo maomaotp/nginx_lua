@@ -4,24 +4,47 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
+add_message	fm3_user.lua	/^function add_message()$/;"	f
+close_mysql	fm3_recommend.lua	/^function close_mysql()$/;"	f
+close_mysql	fm3_user.lua	/^function close_mysql()$/;"	f
 close_mysql	mysql.lua	/^function close_mysql()$/;"	f
 close_redis	redis.lua	/^function close_redis()$/;"	f
+error_res	fm3_recommend.lua	/^function error_res(err_code)	$/;"	f
+error_res	fm3_user.lua	/^function error_res(err_code)	$/;"	f
 error_res	mysql.lua	/^function error_res(err_code)	$/;"	f
 error_res	redis.lua	/^function error_res(err_code)	$/;"	f
+init_mysql	fm3_recommend.lua	/^function init_mysql()$/;"	f
+init_mysql	fm3_user.lua	/^function init_mysql()$/;"	f
 init_mysql	mysql.lua	/^function init_mysql()$/;"	f
 init_redis	json.lua	/^function init_redis()$/;"	f
 init_redis	redis.lua	/^function init_redis()$/;"	f
+main	fm3_recommend.lua	/^function main()$/;"	f
+main	fm3_user.lua	/^function main()$/;"	f
 main	json.lua	/^function main()$/;"	f
 main	mysql.lua	/^function main()$/;"	f
 main	redis.lua	/^function main()$/;"	f
+parse_postargs	fm3_recommend.lua	/^function parse_postargs()$/;"	f
+parse_postargs	fm3_user.lua	/^function parse_postargs()$/;"	f
 parse_postargs	mysql.lua	/^function parse_postargs()$/;"	f
 parse_postargs	redis.lua	/^function parse_postargs()$/;"	f
+programList	fm3_recommend.lua	/^function programList()$/;"	f
+program_info	fm3_recommend.lua	/^function program_info()	$/;"	f
 query_all	json.lua	/^function query_all()$/;"	f
 query_city	mysql.lua	/^function query_city(provinceSpell)$/;"	f
 query_fm	mysql.lua	/^function query_fm(city_name, radio_level, classification)$/;"	f
+query_show	fm3_recommend.lua	/^function query_show(radioId)$/;"	f
 query_show	mysql.lua	/^function query_show(radioId)$/;"	f
+query_top	fm3_recommend.lua	/^function query_top(top_name)$/;"	f
 query_top	mysql.lua	/^function query_top(top_name)$/;"	f
 query_top	redis.lua	/^function query_top(key)$/;"	f
+read_message	fm3_user.lua	/^function read_message()$/;"	f
+search_fm	fm3_recommend.lua	/^function search_fm(fm_name)$/;"	f
 search_fm	mysql.lua	/^function search_fm(fm_name)$/;"	f
+slacker_radio	fm3_recommend.lua	/^function slacker_radio()$/;"	f
+update_top	fm3_recommend.lua	/^function update_top(top_name, id, number)$/;"	f
 update_top	mysql.lua	/^function update_top(top_name, id, number)$/;"	f
 update_top	redis.lua	/^function update_top(key, id, score)$/;"	f
+user_add	fm3_user.lua	/^function user_add(qq, phoneIdentify)$/;"	f
+user_login	fm3_user.lua	/^function user_login()$/;"	f
+user_register	fm3_user.lua	/^function user_register(userId, password, nickname)	$/;"	f
+user_update	fm3_user.lua	/^function user_update()$/;"	f
