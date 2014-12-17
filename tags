@@ -4,6 +4,7 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
+add_comment	fm3_user.lua	/^function add_comment()$/;"	f
 add_message	fm3_user.lua	/^function add_message()$/;"	f
 close_mysql	fm3_recommend.lua	/^function close_mysql()$/;"	f
 close_mysql	fm3_user.lua	/^function close_mysql()$/;"	f
@@ -13,6 +14,8 @@ error_res	fm3_recommend.lua	/^function error_res(err_code)	$/;"	f
 error_res	fm3_user.lua	/^function error_res(err_code)	$/;"	f
 error_res	mysql.lua	/^function error_res(err_code)	$/;"	f
 error_res	redis.lua	/^function error_res(err_code)	$/;"	f
+fm_log	fm3_user.lua	/^function fm_log(opname, code, err)$/;"	f
+fm_xml	fm3_user.lua	/^function fm_xml()$/;"	f
 init_mysql	fm3_recommend.lua	/^function init_mysql()$/;"	f
 init_mysql	fm3_user.lua	/^function init_mysql()$/;"	f
 init_mysql	mysql.lua	/^function init_mysql()$/;"	f
@@ -46,5 +49,5 @@ update_top	mysql.lua	/^function update_top(top_name, id, number)$/;"	f
 update_top	redis.lua	/^function update_top(key, id, score)$/;"	f
 user_add	fm3_user.lua	/^function user_add(qq, phoneIdentify)$/;"	f
 user_login	fm3_user.lua	/^function user_login()$/;"	f
-user_register	fm3_user.lua	/^function user_register(userId, password, nickname)	$/;"	f
+user_register	fm3_user.lua	/^function user_register()	$/;"	f
 user_update	fm3_user.lua	/^function user_update()$/;"	f

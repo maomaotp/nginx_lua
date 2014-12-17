@@ -258,6 +258,8 @@ function main()
 		return
 	end
 
+	writeFile("liuq test")
+
 	--个性电台节目列表
 	if (opname == "slackerRadio") then
 		slacker_radio()
