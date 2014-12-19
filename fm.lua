@@ -18,10 +18,11 @@ http {
 	ssl_certificate ../conf/ca.crt;
 	ssl_certificate_key ../conf/server.key;
 
-	log_format main '[$time_local] $remote_addr $request_uri '
+	log_format access_log '[$time_local] $remote_addr $request_uri '
 					'[$http_user_agent] $bytes_sent $request_time '
 					'"$request_body" $host $status';
-	access_log logs/access.log main;
+	access_log logs/access.log access_log;
+    error_log logs/error.log error;
 
 	keepalive_timeout 1200;
 	upstream fmserver{
@@ -54,6 +55,9 @@ http {
 		}
 		location /fm{
 			content_by_lua_file "nginx_lua/fm3_recommend.lua";
+		}
+		location /search{
+			content_by_lua_file "nginx_lua/fm3_search.lua";
 		}
 	}
 }

@@ -1,5 +1,6 @@
 local cjson = require "cjson"
 local mysql = require "resty.mysql"
+
 local MYSQL_HOST = "123.57.41.242"
 local MYSQL_POST = 3306
 local MYSQL_DATABASE = "fm_appserver"
@@ -87,7 +88,7 @@ function parse_postargs()
 		fm_log(opname, ERR_OPNAME, err)
 		return ERR_OPNAME
 	end
-	return 0
+	return OK_RES
 end
 
 function close_mysql()
@@ -105,7 +106,7 @@ function close_mysql()
 		fm_log(opname, ERR_MYSQL_CLOSE, err)
 	    return ERR_MYSQL_CLOSE
 	end
-	return 0
+	return OK_RES
 end
 
 function user_register()	
@@ -123,14 +124,14 @@ function user_register()
 	end
 
 	local register_sql = string.format("insert into u_userInfo (userId,password,nickname) values('%s','%s','%s')", userId, password, nickname)
-	ngx.say(register_sql)
 	local res, err = db:query(register_sql)
 	if not res then
 		fm_log(opname, ERR_MYSQL_QUERY, err)		
+		ngx.log(ngx.ERR, "test")
 	    return ERR_MYSQL_QUERY
 	end
 
-	return 0
+	return OK_RES
 end
 
 function user_login()
@@ -182,7 +183,7 @@ function user_login()
 		return ERR_USER_LOGINTYPE
 	end
 
-	return 0
+	return OK_RES
 end
 
 function user_update()
@@ -209,6 +210,8 @@ function user_update()
 		fm_log(opname, ERR_MYSQL_QUERY, err)		
 		return ERR_MYSQL_QUERY
 	end
+
+	return OK_RES
 end
 
 function user_add(qq, phoneIdentify)
@@ -290,7 +293,7 @@ function add_message()
 		fm_log(opname, ERR_MYSQL_QUERY, err)		
 		return ERR_MYSQL_QUERY
 	end
-	return 0
+	return OK_RES
 end
 
 function add_comment()
@@ -310,23 +313,18 @@ function add_comment()
 		fm_log(opname, ERR_MYSQL_QUERY, err)		
 		return ERR_MYSQL_QUERY
 	end
-	return 0
+	return OK_RES
 end
 
 --函数入口
 function main()
-	local res_code
 	local res_code = init_mysql()
-	if ( res_code ~= 0 ) then
+	if ( res_code ~= OK_RES ) then
 		error_res(res_code)
 		return
 	end
 	--解析post参数
 	res_code = parse_postargs()
-	if( res_code ~= 0) then
-		error_res(res_code)
-		return
-	end
 
 	--用户注册
 	if (opname == "register") then
@@ -347,7 +345,13 @@ function main()
 		res_code = ERR_OPNAME
 	end
 
-	ngx.say("res_code = ", res_code)
+	if( res_code ~= OK_RES) then
+		error_res(res_code)
+		return
+	else
+		ngx.say('{"result":"OK"}')
+	end
+
 	close_mysql()
 end
 
