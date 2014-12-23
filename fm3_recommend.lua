@@ -184,11 +184,17 @@ end
 
 function slacker_radio()
 	local select_sql
+	local phoneIdentify = args["phoneIdentify"]
 	local programType = args["programType"]
+
+	if not phoneIdentify then 
+		fm_log(opname, ERR_PARSE_POSTARGS)
+		return ERR_PARSE_POSTARGS
+	end
 	if not programType or (programType == "") then
-		select_sql = string.format("select programId,programName,programUri,picture from a_program order by duration limit %d,%d", start, page)	
+		select_sql = string.format("select programId,programName,programUri,picture,programIntro,radioId,albumId from a_program order by duration limit %d,%d", start, page)	
 	else
-		select_sql = "select programId,programName,programUri,programIntro,picture,sharesCount,favoritesCount from a_program where programType="
+		select_sql = "select programId,programName,programUri,picture,programIntro,radioId,albumId from a_program where programType="
 		for number in string.gfind(programType, '%d+') do
 			select_sql = string.format("%s%s or programType=", select_sql, number)
 		end
@@ -196,7 +202,6 @@ function slacker_radio()
 		select_sql = string.format("%s order by duration limit %d,%d", select_sql, start, page)
 	end
 
-	ngx.say(select_sql)
 	local res, err = db:query(select_sql)
 	if not res then
 		fm_log(opname, ERR_MYSQL_QUERY, err)
@@ -204,22 +209,41 @@ function slacker_radio()
 	end
 
 	ngx.say(cjson.encode(res))
+
+	--更新用户标签
+	local user_sql = string.format("insert into u_userInfo (userId,userTag) values('%s', '%s') on duplicate key update userTag='%s'", phoneIdentify, programType, programType)
+	local res, err = db:query(user_sql)
+	if not res then
+		fm_log(opname, ERR_MYSQL_QUERY, err)
+		return ERR_MYSQL_QUERY
+	end
+
+	return 0
 end
 
 function program_info()	
-	local programId = args["programId"]	
-	if not programId then 
+	local radioId = args["radioId"]	
+	local albumId = args["albumId"]
+
+	if not radioId and not albumId then
 		fm_log(opname, ERR_PARSE_POSTARGS)
 		return ERR_PARSE_POSTARGS
+	elseif radioId and not albumId then
+		sql = string.format("select nameCn,logo from Radio_Info where radioID='%s'", radioId)
+	elseif albumId and not radioId then
+		sql = string.format("select albumName,picture from a_album where albumId='%s'", albumId)
+	else
+		sql = string.format("select A.nameCn,A.logo,B.albumName,B.picture from Radio_Info A, a_album B where A.radioID='%s' and B.albumId='%s'", radioId, albumId)
 	end
-	local select_sql = string.format("select A.albumId,A.albumName,A.picture,B.radioID,B.nameCn,B.logo from Radio_Info B,a_album A, a_program C where C.programId='%s' and B.radioID=C.radioID and A.albumId = C.albumId", programId)
 
-	local res, err = db:query(select_sql)
+	local res, err = db:query(sql)
 	if not res then
 		fm_log(opname, ERR_MYSQL_QUERY, err)
 		return ERR_MYSQL_QUERY
 	end
+
 	ngx.say(cjson.encode(res))
+	return 0
 end
 
 function programList()
@@ -270,11 +294,11 @@ function main()
 	if (opname == "slackerRadio") then
 		res_code = slacker_radio()
 	
-	--获取节目所属电台专辑
+	--获取节目所属电台专辑信息
 	elseif (opname == "programInfo") then
 		res_code = program_info()	
 
-	--电台节目列表
+	--电台/专辑 节目列表
 	elseif (opname == "programList") then
 		res_code = programList()
 	--查询串播单	
