@@ -9,6 +9,7 @@ local MYSQL_PASSWD = "lingban2014"
 
 local DB_TIMEOUT = 5000  --5 sec
 local MAX_SIZE = 1024*1024
+local USER_LOG = "/home/work/logs/fm"
 
 --error message
 local OK_RES = 0
@@ -186,6 +187,7 @@ function slacker_radio()
 	local select_sql
 	local phoneIdentify = args["phoneIdentify"]
 	local programType = args["programType"]
+	ngx.say(programType)
 
 	if not phoneIdentify then 
 		fm_log(opname, ERR_PARSE_POSTARGS)
@@ -224,16 +226,17 @@ end
 function program_info()	
 	local radioId = args["radioId"]	
 	local albumId = args["albumId"]
+	local sql
 
 	if not radioId and not albumId then
 		fm_log(opname, ERR_PARSE_POSTARGS)
 		return ERR_PARSE_POSTARGS
 	elseif radioId and not albumId then
-		sql = string.format("select nameCn,logo from Radio_Info where radioID='%s'", radioId)
+		sql = string.format("select nameCn,logo,url,introduction from Radio_Info where radioID='%s'", radioId)
 	elseif albumId and not radioId then
 		sql = string.format("select albumName,picture from a_album where albumId='%s'", albumId)
 	else
-		sql = string.format("select A.nameCn,A.logo,B.albumName,B.picture from Radio_Info A, a_album B where A.radioID='%s' and B.albumId='%s'", radioId, albumId)
+		sql = string.format("select A.nameCn,A.logo,A.url,A.introduction,B.albumName,B.picture from Radio_Info A, a_album B where A.radioID='%s' and B.albumId='%s'", radioId, albumId)
 	end
 
 	local res, err = db:query(sql)
@@ -253,7 +256,7 @@ function programList()
 	local select_sql
 
 	if albumId then
-		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where albumId='%s' order by playTime limit %d,%d", albumId, start, page)
+		select_sql = string.format("select albumId,albumName,picture,albumIntro,tag,albumType,sharesCount from a_album where albumId='%s'", albumId)
 	elseif radioId then
 		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where radioId='%s' order by playTime limit %d,%d", radioId, start, page)
 	elseif programId then
@@ -272,13 +275,13 @@ function programList()
 		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where compere='%s' and programType=%d limit %d,%d", compere, programType, start, page)
 	end
 
-	ngx.say(select_sql)
 	local res, err = db:query(select_sql)
 	if not res then
 		fm_log(opname, ERR_MYSQL_QUERY, err)
 		return ERR_MYSQL_QUERY
 	end
 	ngx.say(cjson.encode(res))
+	return 0
 end
 
 --函数入口
@@ -293,11 +296,9 @@ function main()
 	--个性电台节目列表
 	if (opname == "slackerRadio") then
 		res_code = slacker_radio()
-	
 	--获取节目所属电台专辑信息
 	elseif (opname == "programInfo") then
 		res_code = program_info()	
-
 	--电台/专辑 节目列表
 	elseif (opname == "programList") then
 		res_code = programList()

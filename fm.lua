@@ -56,8 +56,13 @@ http {
 		location /fm{
 			content_by_lua_file "nginx_lua/fm3_recommend.lua";
 		}
-		location /search{
-			content_by_lua_file "nginx_lua/fm3_search.lua";
-		}
+
+        location ~ \.php$ {
+			root           /php;
+            fastcgi_pass   127.0.0.1:9000;
+            fastcgi_index  index.php;
+            fastcgi_param  SCRIPT_FILENAME  /home/work/php$fastcgi_script_name;
+			include        fastcgi_params;
+        }
 	}
 }

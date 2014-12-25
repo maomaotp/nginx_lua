@@ -372,6 +372,17 @@ function real_comment()
 	return OK_RES
 end
 
+function hot_words()
+	local hot_sql = string.format("select hotwords from t_hot order by seekNumber limit %s,%s", start, page)
+	local res, err = db:query(hot_sql)
+	if not res then
+		fm_log(opname, ERR_MYSQL_QUERY, err)
+		return ERR_MYSQL_QUERY
+	end
+	ngx.say(cjson.encode(res))
+	return OK_RES
+end
+
 --函数入口
 function main()
 	local res_code = init_mysql()
@@ -399,6 +410,8 @@ function main()
 		res_code = real_comment()
 	elseif (opname == "getContent") then
 		res_code = fm_xml()
+	elseif (opname == "hotwords") then
+		res_code = hot_words()
 	else 
 		fm_log(opname, ERR_OPNAME)
 		res_code = ERR_OPNAME
