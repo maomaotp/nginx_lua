@@ -218,11 +218,13 @@ function user_update()
 	local telephone = args["telephone"]
 	local email = args["email"]
 	local picture = args["picture"]
-	if not userId or not nickname or (userId == "") or (nickname == "")then
+
+
+	if not userId or not nickname then
 		fm_log(opname, ERR_PARAMETER)		
 		return ERR_PARAMETER
 	end
-	
+  
 	if not sex or (sex == "") then sex_string = "" else sex_string = string.format(",sex = '%s'", sex) end
 
 	if not telephone or (telephone == "") then telephone_string = "" else telephone_string = string.format(",telephone='%s'", telephone) end
@@ -372,6 +374,29 @@ function real_comment()
 	return OK_RES
 end
 
+function add_interest()
+	local userId = args["userId"]
+	local id = args["id"]
+	local itype = args["itype"]
+	local opType = args["opType"]
+	local value = args["value"]
+	
+	if not userId or not id or not itype or not opType then
+		fm_log(opname, ERR_PARAMETER)		
+		return ERR_PARAMETER
+	end
+	local update_sql = string.format("insert into u_behavior (id,userId,itype,%s) values('%s','%s','%s',%s) ON DUPLICATE KEY UPDATE %s=%s", opType, id, userId, itype, value, opType, value)
+
+	local res, err = db:query(update_sql)
+	if not res then
+		fm_log(opname, ERR_MYSQL_QUERY, err)		
+		return ERR_MYSQL_QUERY
+	end
+
+	ngx.say('{"result":"OK"}')
+	return OK_RES
+end
+
 function hot_words()
 	local hot_sql = string.format("select hotwords from t_hot order by seekNumber limit %s,%s", start, page)
 	local res, err = db:query(hot_sql)
@@ -393,6 +418,9 @@ function main()
 	--解析post参数
 	res_code = parse_postargs()
 
+--	local content = ngx.var.request_body
+--	ngx.say(content)
+
 	--用户注册
 	if (opname == "register") then
 		res_code = user_register()
@@ -412,6 +440,8 @@ function main()
 		res_code = fm_xml()
 	elseif (opname == "hotwords") then
 		res_code = hot_words()
+	elseif (opname == "interest") then
+		res_code = add_interest()
 	else 
 		fm_log(opname, ERR_OPNAME)
 		res_code = ERR_OPNAME
