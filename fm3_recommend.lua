@@ -187,21 +187,20 @@ function slacker_radio()
 	local select_sql
 	local phoneIdentify = args["phoneIdentify"]
 	local programType = args["programType"]
-	ngx.say(programType)
 
 	if not phoneIdentify then 
 		fm_log(opname, ERR_PARSE_POSTARGS)
 		return ERR_PARSE_POSTARGS
 	end
 	if not programType or (programType == "") then
-		select_sql = string.format("select programId,programName,programUri,picture,programIntro,radioId,albumId from a_program order by duration limit %d,%d", start, page)	
+	select_sql = string.format("select programId,programName,programUri,picture,programIntro,radioId,albumId from a_program limit %d,%d", start, page)
 	else
 		select_sql = "select programId,programName,programUri,picture,programIntro,radioId,albumId from a_program where programType="
 		for number in string.gfind(programType, '%d+') do
 			select_sql = string.format("%s%s or programType=", select_sql, number)
 		end
 		select_sql = string.sub(select_sql, 0, -16)
-		select_sql = string.format("%s order by duration limit %d,%d", select_sql, start, page)
+		select_sql = string.format("%s limit %d,%d", select_sql, start, page)
 	end
 
 	local res, err = db:query(select_sql)
@@ -249,6 +248,52 @@ function program_info()
 	return 0
 end
 
+function top_list()
+	local ptype = args["ptype"]
+	local top_sql
+	if not ptype then
+		fm_log(opname, ERR_PARSE_POSTARGS)
+		return ERR_PARSE_POSTARGS
+	end
+	if (ptype == "program") then
+		local programType = args["programType"]
+		if not programType then
+			top_sql = string.format("select A.programId,A.programName,A.programUri,A.compere,A.picture from a_program A,t_play B where A.programId = B.id and B.ptype=1 order by B.duration desc limit %s,%s", start, page)
+		else
+			top_sql = string.format("select A.programId,A.programName,A.programUri,A.compere,A.picture from a_program A,t_play B where A.programId = B.id and A.programType = %s and B.ptype=1 order by B.duration desc limit %s,%s", programType, start, page)
+		end
+
+	elseif (ttype == "radio") then
+		top_sql = string.format("select A.radioId,A.name_cn,A.name_en,A.url,A.introduction,A.logo,A.classification from radio_info A,t_play B where A.radioId = B.id and B.ptype=2 order by B.duration desc limit %s,%s", start, page)
+	elseif (ttype == "album") then
+		top_sql = string.format("select A.albumId,A.albumName,A.albumIntro,A.tag,A.albumType,A.picture from a_album A,t_play B where A.albumId = B.id and B.ptype=3 order by B.duration desc limit %s,%s", start, page)
+	end
+	ngx.say(top_sql)
+
+	local res, err = db:query(top_sql)
+	if not res then
+		fm_log(opname, ERR_MYSQL_QUERY, err)
+		return ERR_MYSQL_QUERY
+	end
+
+	ngx.say(cjson.encode(res))
+	return 0
+end
+
+function statis()
+	local userId = args["userId"]
+	local id = args["id"]
+	local ptype = args["ptype"]
+	local operate = args["operate"]
+
+	if not userId or not id or not ptype or not operate then
+		fm_log(opname, ERR_PARSE_POSTARGS)
+		return ERR_PARSE_POSTARGS
+	end
+	if (operate == "1") then
+			
+end
+
 function programList()
 	local radioId = args["radioId"]
 	local albumId = args["albumId"]
@@ -256,23 +301,11 @@ function programList()
 	local select_sql
 
 	if albumId then
-		select_sql = string.format("select albumId,albumName,picture,albumIntro,tag,albumType,sharesCount from a_album where albumId='%s'", albumId)
+		select_sql = string.format("select albumId,albumName,picture,albumIntro,tag,albumType from a_album where albumId='%s'", albumId)
 	elseif radioId then
 		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where radioId='%s' order by playTime limit %d,%d", radioId, start, page)
 	elseif programId then
-		result_sql = string.format("select compere,programType from a_program where programId='%s'", programId)
-		local res, err = db:query(result_sql)
-		if not res then
-			fm_log(opname, ERR_MYSQL_QUERY, err)
-			return ERR_MYSQL_QUERY
-		end
-		local compere = res[1]["compere"]
-		local programType = res[1]["programType"]
-		if not compere or not programType then
-			fm_log(opname, ERR_PARSE_POSTARGS)
-			return ERR_PARSE_POSTARGS
-		end
-		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where compere='%s' and programType=%d limit %d,%d", compere, programType, start, page)
+		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where programType=(select programType from a_program where programId='%s')", programId)
 	end
 
 	local res, err = db:query(select_sql)
@@ -291,7 +324,6 @@ function main()
 		error_res(res_code)
 		return
 	end
-	--解析post参数
 	res_code = parse_postargs()
 	--个性电台节目列表
 	if (opname == "slackerRadio") then
@@ -302,13 +334,12 @@ function main()
 	--电台/专辑 节目列表
 	elseif (opname == "programList") then
 		res_code = programList()
-	--查询串播单	
-	elseif (opname == "queryShow") then
-
-	--查询排行榜信息
-	elseif (opname == "queryTop") then
-
-	elseif (opname == "updateTop") then
+	--热门 电台/专辑/节目
+	elseif (opname == "top") then
+		res_code = top_list()
+	--用户 喜欢/收藏...操作
+	elseif (opname == "static") then
+		res_code = statis()
 	else
 		fm_log(opname, ERR_OPNAME, err)
 		res_code = 80005 

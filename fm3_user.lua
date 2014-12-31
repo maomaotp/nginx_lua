@@ -11,7 +11,7 @@ local DB_TIMEOUT = 5000  --2 sec
 local MAX_SIZE = 1024*1024
 
 local USER_LOG = "/home/work/logs/fm"
-local CONFIG_FILE = "/home/work/conf/fm_category.xml"
+local CONFIG_FILE = "/home/work/conf/fm_category.json"
 
 --error message
 local OK_RES = 0
@@ -360,6 +360,7 @@ end
 function real_comment()
 	local programId = args["programId"]
 	local addTime = args["addTime"]
+	fm_log("liuq", addTime)
 	if not programId or not addTime then
 		fm_log(opname, ERR_PARAMETER)		
 		return ERR_PARAMETER
