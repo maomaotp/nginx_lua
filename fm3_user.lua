@@ -13,17 +13,28 @@ local MAX_SIZE = 1024*1024
 local USER_LOG = "/home/work/logs/fm"
 local CONFIG_FILE = "/home/work/conf/fm_category.json"
 
---error message
+--res code
 local OK_RES = 0
+local ERR_PARSE_POSTARGS = 80001
+local ERR_MYSQL_QUERY = 80002
+local ERR_MYSQL_INIT = 80003
+local ERR_OPNAME = 80005
+local ERR_NULL_SQL = 80006
+local ERR_GET_POST_BODY = 80007
+local ERR_USER_PASSWD = 80008
+local ERR_USER_EXIST = 80009
 
-local ERR_PARAMETER = 90001
-local ERR_USER_LOGINTYPE = 90003
-local ERR_OPNAME = 90004
-local ERR_MYSQL_QUERY = 90002
-local ERR_MYSQL_CONNECT = 90005
-local ERR_MYSQL_CLOSE = 90006
-local ERR_USER_PASSWD = 90007
-local ERR_USER_EXIST = 90008
+local err_array = {
+	[0] = "success",
+	[80001] = "请求参数错误",
+	[80002] = "数据库请求错误",
+	[80003] = "数据库初始化错误",
+	[80005] = "方法名错误",
+	[80006] = "数据库请求错误",
+	[80007] = "获取post body内容错误",
+	[80008] = "用户名或密码错误",
+	[80009] = "用户已存在",
+}
 
 function fm_log(opname, code, err)
 	local file = string.format("%s_%s.log", USER_LOG, os.date("%Y%m"))
@@ -38,17 +49,13 @@ function fm_xml()
 	local content = f:read("*all")
 	ngx.say(content)
 	f:close()
-
-	return OK_RES
 end
 
-function error_res(err_code)	
-	local describe = "describe"
-	local res_json = {
-		errorId = err_code, desc = describe
-	}
+
+function http_resp(code)	
 	close_mysql()
-	ngx.say(cjson.encode(res_json))
+	local res_str = string.format('{"describe":"%s","code":%d}', err_array[code],code)
+	ngx.say(res_str)
 end
 
 --初始化mysql连接
@@ -66,8 +73,8 @@ function init_mysql()
 	}
 	
 	if not ok then
-		fm_log(opname, ERR_MYSQL_CONNECT, err)
-	    return ERR_MYSQL_CONNECT
+		fm_log(opname, ERR_MYSQL_INIT, err)
+	    return ERR_MYSQL_INIT
 	end
 	return OK_RES
 end
@@ -76,8 +83,8 @@ function parse_postargs()
 	ngx.req.read_body()
 	args = ngx.req.get_post_args()
 	if not args then
-		fm_log(opname, ERR_PARAMETER, err)
-		return ERR_PARAMETER 
+		fm_log(opname, ERR_GET_POST_BODY, err)
+		return
 	end
 	
 	--解析翻页参数
@@ -99,15 +106,15 @@ function close_mysql()
 --	local ok, err = db:close()
 --	if not ok then
 --	    ngx.say("failed to close: ", err)
---	    return ERR_MYSQL_CLOSE
+--	    return ERR_MYSQL_QUERY
 --	end
 	-- put it into the connection pool of size 100,
 	-- with 10 seconds max idle timeout
 	local ok, err = db:set_keepalive(30000, 100)
 	if not ok then
 		db:close()
-		fm_log(opname, ERR_MYSQL_CLOSE, err)
-	    return ERR_MYSQL_CLOSE
+		fm_log(opname, ERR_MYSQL_QUERY, err)
+	    return ERR_MYSQL_QUERY
 	end
 	return OK_RES
 end
@@ -196,8 +203,8 @@ function user_login()
 			fm_log(opname, ERR_MYSQL_QUERY, err)		
 		end
 	else
-		fm_log(opname, ERR_USER_LOGINTYPE)
-		return ERR_USER_LOGINTYPE
+		fm_log(opname, ERR_PARSE_POSTARGS)
+		return ERR_PARSE_POSTARGS
 	end
 
 	local tag_sql = string.format("update u_userInfo set userTag=(select userTag from (select * from u_userInfo) as b where userId='%s') where userId='%s'", phoneIdentify, userId)
@@ -284,7 +291,7 @@ function add_message()
 	return OK_RES
 end
 
-function read_message()
+function user_message()
 	local userId = args["userId"]
 	if not userId or (userId == "") then
 		return ERR_PARAMETER
@@ -411,49 +418,43 @@ end
 
 --函数入口
 function main()
-	local res_code = init_mysql()
-	if ( res_code ~= OK_RES ) then
-		error_res(res_code)
+	if (init_mysql() ~= 0) then
+		http_resp(ERR_MYSQL_INIT)
 		return
 	end
-	--解析post参数
-	res_code = parse_postargs()
+
+	if (parse_postargs() ~= 0) then
+	    http_resp(ERR_GET_POST_BODY)	
+		return 
+	end
 
 --	local content = ngx.var.request_body
 --	ngx.say(content)
+	
+	local op_action = {
+		["register"] = user_register(),
+		["logIn"] = user_login(),
+		["update"] = user_update(),
+		["readMessage"] = user_message(),
+		["addMessage"] = add_message(),
+		["addComment"] = add_comment(),
+		["realComment"] = real_comment(),
+		["getContent"] = fm_xml(),
+		["hotwords"] = hot_words(),
+		["interest"] = add_interest(),
+	}
 
-	--用户注册
-	if (opname == "register") then
-		res_code = user_register()
-	elseif (opname == "logIn") then
-		res_code = user_login()
-	elseif (opname == "update") then
-		res_code = user_update()
-	elseif (opname == "readMessage") then
-		res_code = read_message()
-	elseif (opname == "addMessage") then
-		res_code = add_message()
-	elseif (opname == "addComment") then
-		res_code = add_comment()
-	elseif (opname == "realComment") then
-		res_code = real_comment()
-	elseif (opname == "getContent") then
-		res_code = fm_xml()
-	elseif (opname == "hotwords") then
-		res_code = hot_words()
-	elseif (opname == "interest") then
-		res_code = add_interest()
-	else 
-		fm_log(opname, ERR_OPNAME)
-		res_code = ERR_OPNAME
-	end
-
-	if( res_code ~= OK_RES) then
-		error_res(res_code)
+	if not op_action[opname] then
+		fm_log(opname, ERR_OPNAME, err)
+		http_resp(ERR_OPNAME)	
 		return
 	end
 
-	close_mysql()
+	--local res_code = op_action[opname]
+
+	if res_code then
+		http_resp(res_code)
+	end
 end
 
 main()
