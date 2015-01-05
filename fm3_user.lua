@@ -432,16 +432,16 @@ function main()
 --	ngx.say(content)
 	
 	local op_action = {
-		["register"] = user_register(),
-		["logIn"] = user_login(),
-		["update"] = user_update(),
-		["readMessage"] = user_message(),
-		["addMessage"] = add_message(),
-		["addComment"] = add_comment(),
-		["realComment"] = real_comment(),
-		["getContent"] = fm_xml(),
-		["hotwords"] = hot_words(),
-		["interest"] = add_interest(),
+		["register"] = function return user_register() end,
+		["logIn"] = function return user_login() end,
+		["update"] = function return user_update() end,
+		["readMessage"] = function return user_message() end,
+		["addMessage"] = function return add_message() end,
+		["addComment"] = function return add_comment() end,
+		["realComment"] = function return real_comment() end,
+		["getContent"] = function return fm_xml() end,
+		["hotwords"] = function return hot_words() end,
+		["interest"] = function return add_interest() end,
 	}
 
 	if not op_action[opname] then
