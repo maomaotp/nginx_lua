@@ -353,6 +353,28 @@ function add_comment()
 	return OK_RES
 end
 
+function addplaud() 
+	local commentId = args["commentId"]
+	local applaud = tonumber(args["applaud"])
+	
+	if not commentId or not applaud then
+		fm_log(opname, ERR_PARSE_POSTARGS)		
+		return ERR_PARSE_POSTARGS
+	end
+	
+	if (applaud == 0) then applaud = -1 end
+
+	local u_sql = string.format("update p_comment set applaud=applaud+%d where commentId=%s",applaud, commentId)
+	ngx.say(u_sql)
+	local res, err = db:query(u_sql)
+	if not res then
+		fm_log(opname, ERR_MYSQL_QUERY, err)		
+		return ERR_MYSQL_QUERY
+	end
+
+	return OK_RES
+end
+
 function get_comment()
 	local programId = args["programId"]
 	local curTime = args["curTime"]
@@ -366,7 +388,6 @@ function get_comment()
 		curTime = string.format(" and UNIX_TIMESTAMP(A.addTime) > UNIX_TIMESTAMP('%s')",curTime)
 	end
 	local real_sql = string.format("select A.userId,A.content,A.applaud,A.addTime,B.picture,A.commentId,B.nickname from p_comment A,u_userInfo B where A.programId='%s' and B.userId=A.userId %s limit %s,%s", programId,curTime,start,page)
-	ngx.say(real_sql)
 	local res, err = db:query(real_sql)
 	if not res then
 		fm_log(opname, ERR_MYSQL_QUERY, err)		
@@ -411,6 +432,7 @@ function main()
 		["getComment"] = function() return get_comment() end,
 		["getJson"] = function() return get_json() end,
 		["hotwords"] = function() return hot_words() end,
+		["applaud"] = function() return addplaud() end,
 	}
 
 	if not op_action[opname] then
