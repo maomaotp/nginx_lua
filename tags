@@ -4,6 +4,21 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
+["addComment"] 	fm3_user.lua	/^		["addComment"] = function() return add_comment() end,$/;"	f
+["getComment"] 	fm3_user.lua	/^		["getComment"] = function() return get_comment() end,$/;"	f
+["getContent"] 	fm3_user.lua	/^		["getContent"] = function() return fm_xml() end,$/;"	f
+["hotwords"] 	fm3_user.lua	/^		["hotwords"] = function() return hot_words() end,$/;"	f
+["interest"] 	fm3_user.lua	/^		["interest"] = function() return add_interest() end,$/;"	f
+["logIn"] 	fm3_user.lua	/^		["logIn"] = function() return user_login() end,$/;"	f
+["programInfo"] 	fm3_recommend.lua	/^		["programInfo"] = function() return program_info() end,$/;"	f
+["programList"] 	fm3_recommend.lua	/^		["programList"] = function() return program_list() end,$/;"	f
+["register"] 	fm3_user.lua	/^		["register"] = function() return user_register() end,$/;"	f
+["sendMessage"] 	fm3_user.lua	/^		["sendMessage"] = function() return send_message() end,$/;"	f
+["slackerRadio"] 	fm3_recommend.lua	/^		["slackerRadio"] = function() return radio_recommend() end,$/;"	f
+["statistics"] 	fm3_recommend.lua	/^		["statistics"] = function() return statistics() end, $/;"	f
+["top"] 	fm3_recommend.lua	/^		["top"] = function() return top_list() end,$/;"	f
+["update"] 	fm3_user.lua	/^		["update"] = function() return user_update() end,$/;"	f
+["userMessage"] 	fm3_user.lua	/^		["userMessage"] = function() return user_message() end,$/;"	f
 add_comment	fm3_user.lua	/^function add_comment()$/;"	f
 add_index	index.php	/^function add_index()$/;"	f
 add_interest	fm3_user.lua	/^function add_interest()$/;"	f
@@ -21,21 +36,23 @@ dbconnect	index.php	/^	$dbconnect = mysql_select_db($db, $connection);$/;"	v
 dec	index.php	/^	    $dec = hexdec(bin2hex($tmp));$/;"	v
 encoding	index.php	/^function str2Unicode($str, $encoding = 'UTF-8') $/;"	v
 error_res	fm3_search.lua	/^function error_res(err_code)	$/;"	f
-error_res	fm3_user.lua	/^function error_res(err_code)	$/;"	f
 error_res	mysql.lua	/^function error_res(err_code)	$/;"	f
 error_res	redis.lua	/^function error_res(err_code)	$/;"	f
 fm_log	fm3_recommend.lua	/^function fm_log(opname, code, err)$/;"	f
 fm_log	fm3_user.lua	/^function fm_log(opname, code, err)$/;"	f
 fm_xml	fm3_user.lua	/^function fm_xml()$/;"	f
+get_comment	fm3_user.lua	/^function get_comment()$/;"	f
 get_program	index.php	/^function get_program($keywords,$start,$page)$/;"	f
 host	index.php	/^	$host = "123.57.41.242";$/;"	v
 hot_words	fm3_user.lua	/^function hot_words()$/;"	f
 http_resp	fm3_recommend.lua	/^function http_resp(code)	$/;"	f
+http_resp	fm3_user.lua	/^function http_resp(code)	$/;"	f
 init_db	index.php	/^function init_db()$/;"	f
 init_mysql	fm3_recommend.lua	/^function init_mysql()$/;"	f
 init_mysql	fm3_search.lua	/^function init_mysql()$/;"	f
 init_mysql	fm3_user.lua	/^function init_mysql()$/;"	f
 init_mysql	mysql.lua	/^function init_mysql()$/;"	f
+init_redis	fm3_recommend.lua	/^function init_redis()$/;"	f
 init_redis	json.lua	/^function init_redis()$/;"	f
 init_redis	redis.lua	/^function init_redis()$/;"	f
 json	index.php	/^	$json = json_encode($records); $/;"	v
@@ -75,8 +92,6 @@ query_top	fm3_search.lua	/^function query_top(top_name)$/;"	f
 query_top	mysql.lua	/^function query_top(top_name)$/;"	f
 query_top	redis.lua	/^function query_top(key)$/;"	f
 radio_recommend	fm3_recommend.lua	/^function radio_recommend()$/;"	f
-read_message	fm3_user.lua	/^function read_message()$/;"	f
-real_comment	fm3_user.lua	/^function real_comment()$/;"	f
 records	index.php	/^	$records = array(); $/;"	v
 searchProgram	fm3_search.lua	/^function searchProgram()$/;"	f
 search_fm	fm3_search.lua	/^function search_fm(fm_name)$/;"	f
@@ -84,6 +99,7 @@ search_fm	mysql.lua	/^function search_fm(fm_name)$/;"	f
 select_res	index.php	/^		$select_res = mysql_query($select_sql) or die("query failed");$/;"	v
 select_res	index.php	/^	$select_res = mysql_query($query_sql) or die("query failed\\n");$/;"	v
 select_sql	index.php	/^		$select_sql = $query . " " . $limit;$/;"	v
+send_message	fm3_user.lua	/^function send_message()$/;"	f
 start	index.php	/^		$start = $i*10;$/;"	v
 start	index.php	/^		$start = 0;$/;"	v
 start	index.php	/^	$start = $_POST["start"];$/;"	v
@@ -103,5 +119,6 @@ update_top	redis.lua	/^function update_top(key, id, score)$/;"	f
 user	index.php	/^	$user = "lingbanfm";$/;"	v
 user_add	fm3_user.lua	/^function user_add(qq, phoneIdentify)$/;"	f
 user_login	fm3_user.lua	/^function user_login()$/;"	f
+user_message	fm3_user.lua	/^function user_message()$/;"	f
 user_register	fm3_user.lua	/^function user_register()	$/;"	f
 user_update	fm3_user.lua	/^function user_update()$/;"	f

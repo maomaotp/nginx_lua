@@ -44,7 +44,7 @@ function fm_log(opname, code, err)
 end
 
 --读取配置文件
-function fm_xml()
+function get_json()
 	local f = assert(io.open(CONFIG_FILE, "r"))
 	local content = f:read("*all")
 	ngx.say(content)
@@ -125,8 +125,8 @@ function user_register()
 	local userId = args["userId"]
 
 	if not userId or not password or not nickname then
-		fm_log(opname, ERR_PARAMETER, err)		
-		return ERR_PARAMETER
+		fm_log(opname, ERR_PARSE_POSTARGS, err)		
+		return ERR_PARSE_POSTARGS
 	end
 
 	local user_sql = string.format("select count(*) from u_userInfo where userId='%s'", userId)
@@ -150,20 +150,19 @@ function user_register()
 	    return ERR_MYSQL_QUERY
 	end
 
-	ngx.say('{"result":"OK"}')
 	return OK_RES
 end
 
 function user_login()
 	local phoneIdentify = args["phoneIdentify"]
 	local loginWay = tonumber(args["loginWay"])
-	local userId
+	local userId = nil
 	if (loginWay == 1) then	
 		userId = args["userId"]
 		local password = args["password"]
 		if not userId or not password then
-			fm_log(opname, ERR_PARAMETER)		
-			return ERR_PARAMETER
+			fm_log(opname, ERR_PARSE_POSTARGS)		
+			return ERR_PARSE_POSTARGS
 		end
 		local login_sql = string.format("select count(*) from u_userInfo where userId='%s' and password='%s'", userId, password)
 		local res, err = db:query(login_sql)
@@ -180,10 +179,10 @@ function user_login()
 		local qq = args["qq"]	
 		if not qq then 
 			fm_log(opname, ERR_MYSQL_QUERY)		
-			return ERR_MYSQL_QUERY 
+			return ERR_PARSE_POSTARGS
 		end
-		userId = string.format("qq_%s", qq)
-		local i_sql = string.format("insert into u_userInfo (userId, qq) values('%s', '%s')", userId, qq)
+		userId = "qq:" .. qq
+		local i_sql = string.format("insert ignore u_userInfo (userId,qq) values('%s','%s')", userId, qq)
 
 		local res, err = db:query(i_sql)
 		if not res then
@@ -193,10 +192,11 @@ function user_login()
 	elseif(loginWay == 3) then
 		local sina = args["sina"]
 		if not sina then 
-			fm_log(opname, ERR_PARAMETER)		 
+			fm_log(opname, ERR_PARSE_POSTARGS)		 
+			return ERR_PARSE_POSTARGS
 		end
-		userId = string.format("sina_%s", sina)
-		local i_sql = string.format("insert into u_userInfo (userId, sina) values('%s', '%s')", userId, sina)
+		userId = "sina:" .. sina
+		local i_sql = string.format("insert ignore u_userInfo (userId, sina) values('%s','%s')", userId, sina)
 
 		local res, err = db:query(i_sql)
 		if not res then
@@ -207,14 +207,13 @@ function user_login()
 		return ERR_PARSE_POSTARGS
 	end
 
-	local tag_sql = string.format("update u_userInfo set userTag=(select userTag from (select * from u_userInfo) as b where userId='%s') where userId='%s'", phoneIdentify, userId)
+	local tag_sql = string.format("update u_userInfo set LogInNumber=LogInNumber+1,loginWay=%d,userTag=(select userTag from (select * from u_userInfo) as b where userId='%s') where userId='%s'", loginWay, phoneIdentify, userId)
 	local res, err = db:query(tag_sql)
 	if not res then
 		fm_log(opname, ERR_MYSQL_QUERY, err)		
 		return ERR_MYSQL_QUERY
 	end
 
-	ngx.say('{"result":"OK"}')
 	return OK_RES
 end
 
@@ -228,8 +227,8 @@ function user_update()
 
 
 	if not userId or not nickname then
-		fm_log(opname, ERR_PARAMETER)		
-		return ERR_PARAMETER
+		fm_log(opname, ERR_PARSE_POSTARGS)		
+		return ERR_PARSE_POSTARGS
 	end
   
 	if not sex or (sex == "") then sex_string = "" else sex_string = string.format(",sex = '%s'", sex) end
@@ -245,14 +244,13 @@ function user_update()
 		return ERR_MYSQL_QUERY
 	end
 
-	ngx.say('{"result":"OK"}')
 	return OK_RES
 end
 
 function user_add(qq, phoneIdentify)
 	if not qq then
-		fm_log(opname, ERR_PARAMETER)		
-		return ERR_PARAMETER
+		fm_log(opname, ERR_PARSE_POSTARGS)		
+		return ERR_PARSE_POSTARGS
 	end
 	local add_sql = string.format("insert into u_userInfo (userId, loginWay) values(%s, 2)", qq)
 	ngx.say(add_sql)
@@ -273,8 +271,8 @@ function add_message()
 	local content = args["content"]
 	
 	if not userId or (userId == "") or not messageType or (messageType == "") then
-		fm_log(opname, ERR_PARAMETER)		
-		return ERR_PARAMETER
+		fm_log(opname, ERR_PARSE_POSTARGS)		
+		return ERR_PARSE_POSTARGS
 	end
 
 	if not programId then programId = "" end
@@ -287,47 +285,46 @@ function add_message()
 		fm_log(opname, ERR_MYSQL_QUERY, err)		
 		return ERR_MYSQL_QUERY
 	end
-	ngx.say('{"result":"OK"}')
 	return OK_RES
 end
 
 function user_message()
 	local userId = args["userId"]
-	if not userId or (userId == "") then
-		return ERR_PARAMETER
+	local status = args["status"]
+	if not userId then
+		fm_log(opname, ERR_PARSE_POSTARGS)		
+		return ERR_PARSE_POSTARGS
 	end
-	local select_sql = string.format("select userId,messageType,messageTime,content from u_message where userId='%s'", userId)
-	local res, err = db:query(select_sql)
+	if not status then
+		status = ""
+	else
+		status = " and status=" .. status
+	end
+	local select_sql = string.format("select userId,messageType,messageTime,content,status from u_message where userId='%s' %s", userId, status)
+	local update_sql = string.format("update u_message set status=1 where userId='%s'", userId)
+	local res, err = db:query(select_sql .. ";" .. update_sql)
 	if not res then
 		fm_log(opname, ERR_MYSQL_QUERY, err)		
 		return ERR_MYSQL_QUERY
 	end
 	ngx.say(cjson.encode(res))
-
-	local update_sql = string.format("update u_message set status=1 where userId='%s'", userId)
-	local res = db:query(update_sql)
-	if not res then
-		fm_log(opname, ERR_MYSQL_QUERY, err)		
-	end
-
-	return OK_RES
 end
 
-function add_message()
+function send_message()
 	local userId = args["userId"]
 	local messageType = args["messageType"]
 	local content = args["content"]
 	local programId = args["programId"]
 	
 	if not userId or not messageType or not content then
-		fm_log(opname, ERR_PARAMETER)		
-		return ERR_PARAMETER
+		fm_log(opname, ERR_PARSE_POSTARGS)		
+		return ERR_PARSE_POSTARGS
 	end
 	if not programId then
 		programId = ""
 	end
 
-	local i_sql = string.format("insert into u_message (userId,messageType,programId,content) values('%s','%s','%s','%s')", userId, messageType, programId, content)
+	local i_sql = string.format("insert into u_message (userId,messageType,content,programId) values('%s',%s,'%s','%s')", userId, messageType, content,programId)
 
 	local res, err = db:query(i_sql)
 	if not res then
@@ -341,68 +338,41 @@ function add_comment()
 	local userId = args["userId"]
 	local programId = args["programId"]
 	local content = args["content"]
-	local commentId = args["commentId"]
-	local sql
 
-	if commentId then
-		sql = string.format("update p_comment set applaud = applaud+1 where commentId='%s'", commentId)
-	else
-		if not userId or not programId or not content then
-			fm_log(opname, ERR_PARAMETER)		
-			return ERR_PARAMETER
-		end
-		sql = string.format("insert into p_comment (userId,programId,content) values('%s','%s','%s')", userId, programId, content)
+	if not userId or not programId or not content then
+		fm_log(opname, ERR_PARSE_POSTARGS)		
+		return ERR_PARSE_POSTARGS
 	end
+	local i_sql = string.format("insert into p_comment (userId,programId,content) values('%s','%s','%s')", userId, programId, content)
 
-	ngx.say(sql)
-	local res, err = db:query(sql)
+	local res, err = db:query(i_sql)
 	if not res then
 		fm_log(opname, ERR_MYSQL_QUERY, err)		
 		return ERR_MYSQL_QUERY
 	end
-	ngx.say('{"result":"OK"}')
 	return OK_RES
 end
 
-function real_comment()
+function get_comment()
 	local programId = args["programId"]
-	local addTime = args["addTime"]
-	fm_log("liuq", addTime)
-	if not programId or not addTime then
-		fm_log(opname, ERR_PARAMETER)		
-		return ERR_PARAMETER
+	local curTime = args["curTime"]
+	if not programId then
+		fm_log(opname, ERR_PARSE_POSTARGS)		
+		return ERR_PARSE_POSTARGS
 	end
-	local real_sql = string.format("select A.userId,A.content,A.applaud,A.addTime,B.picture,A.commentId,B.nickname,B.userId from p_comment A,u_userInfo B where A.programId='%s' and B.userId=A.userId and UNIX_TIMESTAMP(A.addTime) > UNIX_TIMESTAMP('%s')", programId,addTime)
+	if not curTime then
+		curTime = ""
+	else
+		curTime = string.format(" and UNIX_TIMESTAMP(A.addTime) > UNIX_TIMESTAMP('%s')",curTime)
+	end
+	local real_sql = string.format("select A.userId,A.content,A.applaud,A.addTime,B.picture,A.commentId,B.nickname from p_comment A,u_userInfo B where A.programId='%s' and B.userId=A.userId %s limit %s,%s", programId,curTime,start,page)
+	ngx.say(real_sql)
 	local res, err = db:query(real_sql)
 	if not res then
 		fm_log(opname, ERR_MYSQL_QUERY, err)		
 		return ERR_MYSQL_QUERY
 	end
 	ngx.say(cjson.encode(res))
-	return OK_RES
-end
-
-function add_interest()
-	local userId = args["userId"]
-	local id = args["id"]
-	local itype = args["itype"]
-	local opType = args["opType"]
-	local value = args["value"]
-	
-	if not userId or not id or not itype or not opType then
-		fm_log(opname, ERR_PARAMETER)		
-		return ERR_PARAMETER
-	end
-	local update_sql = string.format("insert into u_behavior (id,userId,itype,%s) values('%s','%s','%s',%s) ON DUPLICATE KEY UPDATE %s=%s", opType, id, userId, itype, value, opType, value)
-
-	local res, err = db:query(update_sql)
-	if not res then
-		fm_log(opname, ERR_MYSQL_QUERY, err)		
-		return ERR_MYSQL_QUERY
-	end
-
-	ngx.say('{"result":"OK"}')
-	return OK_RES
 end
 
 function hot_words()
@@ -432,16 +402,15 @@ function main()
 --	ngx.say(content)
 	
 	local op_action = {
-		["register"] = function return user_register() end,
-		["logIn"] = function return user_login() end,
-		["update"] = function return user_update() end,
-		["readMessage"] = function return user_message() end,
-		["addMessage"] = function return add_message() end,
-		["addComment"] = function return add_comment() end,
-		["realComment"] = function return real_comment() end,
-		["getContent"] = function return fm_xml() end,
-		["hotwords"] = function return hot_words() end,
-		["interest"] = function return add_interest() end,
+		["register"] = function() return user_register() end,
+		["logIn"] = function() return user_login() end,
+		["update"] = function() return user_update() end,
+		["userMessage"] = function() return user_message() end,
+		["sendMessage"] = function() return send_message() end,
+		["addComment"] = function() return add_comment() end,
+		["getComment"] = function() return get_comment() end,
+		["getJson"] = function() return get_json() end,
+		["hotwords"] = function() return hot_words() end,
 	}
 
 	if not op_action[opname] then
@@ -450,7 +419,7 @@ function main()
 		return
 	end
 
-	--local res_code = op_action[opname]
+	local res_code = op_action[opname]()
 
 	if res_code then
 		http_resp(res_code)
