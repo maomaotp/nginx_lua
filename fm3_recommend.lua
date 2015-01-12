@@ -1,7 +1,6 @@
 local cjson = require "cjson"
 local mysql = require "resty.mysql"
 local redis = require "resty.redis"
-local parser = require "redis.parser"
 
 --mysql db
 local MYSQL_HOST = "123.57.41.242"
@@ -205,7 +204,7 @@ function top_list()
 
 	local rank_key = "rank:program:play:" .. ptype
 
-	local list,list_err = red:zrange(rank_key, start, page)
+	local list,list_err = red:zrange(rank_key, 0, -1)
 	if list_err then
 		fm_log(opname, ERR_REDIS_QUERY, red_err)
 		return ERR_REDIS_QUERY
@@ -226,8 +225,8 @@ function top_list()
 
 	local action = {
 		[1] = string.format("select programId,programName,programUri,compere,radioId,albumId,picture,programType,secondLevel,tabSet from a_program where programId in (%s)",field),
-		[2] = string.format("select radioId,nameCn,nameEn,url,introduction,radioLevel,provinceSpell,cityName,logo,classification from Radio_Info where radioId in (%s) order by field (radioId,%s)", field,field),
-		[3] = string.format("select albumId,albumName,albumIntro,tabSet,albumType,picture from a_album where albumId in (%s) order by field (albumId,%s)", field, field),
+		[2] = string.format("select radioId,nameCn,nameEn,url,introduction,radioLevel,provinceSpell,cityName,logo,classification from Radio_Info where radioId in (%s) order by field (radioId,%s) limit %s,%s", field, field, start, page),
+		[3] = string.format("select albumId,albumName,albumIntro,tabSet,albumType,picture from a_album where albumId in (%s) order by field (albumId,%s) limit %s,%s", field, field, start, page),
 	}
 
 	if not action[ptype] then
@@ -241,13 +240,14 @@ function top_list()
 
 		if programType then
 			if not secondLevel then
-				action[ptype] = action[ptype] .. "and programType=" .. programType
+				action[ptype] = action[ptype] .. " and programType=" .. programType
 			else
 				action[ptype] = action[ptype] .. " and programType=" .. programType .. " and secondLevel=" .. secondLevel
 			end
 		end
-		action[ptype] = action[ptype] .. " order by field (radioId," .. field .. ")"
+		action[ptype] = string.format("%s order by field (programId,%s) limit %s,%s", action[ptype], field, start, page)
 	end
+	ngx.say(action[ptype])
 
 	local res, err = db:query(action[ptype])
 	if not res then
@@ -379,6 +379,9 @@ function program_list()
 	ngx.say(cjson.encode(res))
 end
 
+function search() 
+end
+
 --函数入口
 function main()
 	if (init_mysql() ~= 0) then
@@ -401,6 +404,7 @@ function main()
 		["top"] = function() return top_list() end,
 		["statistics"] = function() return statistics() end, 
 		["myprogram"] = function() return order_list() end,  --获取收藏/预定节目列表
+		["search"] = function() return search() end,
 	}
 	if not op_action[opname] then
 		fm_log(opname, ERR_OPNAME)
