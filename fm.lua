@@ -25,7 +25,7 @@ http {
     error_log logs/error.log error;
 
 	keepalive_timeout 1200;
-	upstream fmserver{
+	upstream mysvr{
 		server 192.168.1.120:8080 weight=2;
 		server 192.168.1.120:8090 weight=2;
 	}
@@ -64,5 +64,27 @@ http {
             fastcgi_param  SCRIPT_FILENAME  /home/work/php$fastcgi_script_name;
 			include        fastcgi_params;
         }
+	}
+	#虚拟主机
+	server {
+		listen 8000;
+		server_name 192.168.1.120;
+		access_log logs/mysvr.access.log access_log;
+		location /loadtest {
+			proxy_pass http://mysvr;  #以这种格式来使用后端的web服务器
+			proxy_redirect off;
+			proxy_set_header Host $host; 
+			proxy_set_header X-Real-IP $remote_addr;
+			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
+			client_max_body_size 10m;
+			client_body_buffer_size 128k; 
+			proxy_connect_timeout 90;
+			proxy_send_timeout 90;
+			proxy_read_timeout 90;
+			proxy_buffer_size 4k;
+			proxy_buffers 4 32k;
+			proxy_busy_buffers_size 64k; 
+			proxy_temp_file_write_size 64k;
+		}
 	}
 }

@@ -404,7 +404,6 @@ function hot_words()
 		return ERR_MYSQL_QUERY
 	end
 	ngx.say(cjson.encode(res))
-	return OK_RES
 end
 
 --函数入口

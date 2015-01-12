@@ -1,6 +1,7 @@
 local cjson = require "cjson"
 local mysql = require "resty.mysql"
 local redis = require "resty.redis"
+local parser = require "redis.parser"
 
 --mysql db
 local MYSQL_HOST = "123.57.41.242"
@@ -28,6 +29,7 @@ local ERR_NULL_SQL = 80006
 local ERR_GET_POST_BODY = 80007
 local ERR_REDIS_INIT = 80008
 local ERR_REDIS_QUERY = 80009
+local ERR_INEXIST_TYPE = 80010
 
 local err_array = {
 	[0] = "success",
@@ -39,6 +41,7 @@ local err_array = {
 	[80007] = "获取post body内容错误",
 	[80008] = "redis初始化错误",
 	[80009] = "redis查询错误",
+	[80010] = "不存在的节目类型",
 }
 
 function fm_log(opname, code, err)
@@ -199,30 +202,54 @@ function top_list()
 		fm_log(opname, ERR_PARSE_POSTARGS)
 		return ERR_PARSE_POSTARGS
 	end
+
+	local rank_key = "rank:program:play:" .. ptype
+
+	local list,list_err = red:zrange(rank_key, start, page)
+	if list_err then
+		fm_log(opname, ERR_REDIS_QUERY, red_err)
+		return ERR_REDIS_QUERY
+	end
+	
+	local field = ""
+	local list_len = table.getn(list)
+	if (list_len == 0) then
+		ngx.say("[]")
+		return
+	else
+		for i=1, list_len do
+			field = field .. "'" .. list[i] .. "'," 
+		end
+		--切掉字符串末尾的','
+		field = string.sub(field, 0,-2)
+	end
+
+	local action = {
+		[1] = string.format("select programId,programName,programUri,compere,radioId,albumId,picture,programType,secondLevel,tabSet from a_program where programId in (%s)",field),
+		[2] = string.format("select radioId,nameCn,nameEn,url,introduction,radioLevel,provinceSpell,cityName,logo,classification from Radio_Info where radioId in (%s) order by field (radioId,%s)", field,field),
+		[3] = string.format("select albumId,albumName,albumIntro,tabSet,albumType,picture from a_album where albumId in (%s) order by field (albumId,%s)", field, field),
+	}
+
+	if not action[ptype] then
+		fm_log(opname, ERR_INEXIST_TYPE)
+		return ERR_INEXIST_TYPE
+	end
+
 	if (ptype == 1) then
 		local programType = args["programType"]
 		local secondLevel = args["secondLevel"]
-		local wh_str = ""
+
 		if programType then
 			if not secondLevel then
-				wh_str = "and A.programType=" .. programType
+				action[ptype] = action[ptype] .. "and programType=" .. programType
 			else
-				wh_str = "and A.programType=" .. secondLevel .. " and A.secondLevel=" .. secondLevel
+				action[ptype] = action[ptype] .. " and programType=" .. programType .. " and secondLevel=" .. secondLevel
 			end
 		end
-		top_sql = string.format("select A.programId,A.programName,A.programUri,A.compere,A.radioId,A.albumId,A.picture,A.programType,A.secondLevel,A.tabSet from a_program A,t_play B where A.programId = B.id and B.ptype=1 %s order by B.duration desc limit %s,%s",wh_str, start, page)
-		ngx.say(top_sql)
-
-	elseif (ptype == 2) then
-		top_sql = string.format("select A.radioId,A.nameCn,A.nameEn,A.url,A.introduction,A.radioLevel,A.provinceSpell,A.cityName,A.logo,A.classification from Radio_Info A,t_play B where A.radioId = B.id and B.ptype=2 order by B.duration desc limit %s,%s", start, page)
-	elseif (ptype == 3) then
-		top_sql = string.format("select A.albumId,A.albumName,A.albumIntro,A.tabSet,A.albumType,A.picture from a_album A,t_play B where A.albumId = B.id and B.ptype=3 order by B.duration desc limit %s,%s", start, page)
-	else
-		fm_log(opname, ERR_PARSE_POSTARGS)
-		return ERR_PARSE_POSTARGS
+		action[ptype] = action[ptype] .. " order by field (radioId," .. field .. ")"
 	end
 
-	local res, err = db:query(top_sql)
+	local res, err = db:query(action[ptype])
 	if not res then
 		fm_log(opname, ERR_MYSQL_QUERY, err)
 		return ERR_MYSQL_QUERY
@@ -237,6 +264,7 @@ function statistics()
 	local ptype = args["ptype"]
 	local num = tonumber(args["operate"])
 	local duration = args["duration"]
+
 	local user_sql = nil
 	local id_sql = nil
 
@@ -244,7 +272,7 @@ function statistics()
 		fm_log(opname, ERR_PARSE_POSTARGS)
 		return ERR_PARSE_POSTARGS
 	end
-	-- 1:收听时长  2:分享 3:下载 4:喜爱 5:收藏 6:不喜欢 7:电台评论(该操作自己调用)
+	-- 1:收听时长  2:分享 3:下载 4:喜爱 5:收藏 6:不喜欢 7:电台评论(该操作自己调用) 8:预定
 	local user_action = {
 		[1] = "play",
 		[2] = "shares",
@@ -262,13 +290,15 @@ function statistics()
 
 --redis add
 	--用户收藏/喜欢/下载..列表
-	local set_key = userId .. ":" .. num .. ":" .. ptype
+	local set_key = "list:" .. userId .. ":" .. num
 	local red_res,red_err = red:sadd(set_key, id)
 	if red_err then
 		fm_log(opname, ERR_REDIS_QUERY, red_err)
 		return ERR_REDIS_QUERY
 	end
 	--用户收藏/喜欢/下载..数目统计
+	
+
 	local score=nil
 	if (num == 1) then 
 		if not duration then
@@ -279,43 +309,52 @@ function statistics()
 	else score=1 
 	end
 
-	local hash_user_key = "user" .. ":" .. user_action[num] .. ":" .. ptype
-	local hash_program_key = "program" .. ":" .. user_action[num] .. ":" .. ptype
-	local user_res,user_err = red:hincrby(hash_user_key, userId, score)
+	local user_key = "rank:user" .. ":" .. user_action[num]
+	local program_key = "rank:program" .. ":" .. user_action[num] .. ":" .. ptype
+
+	local user_res,user_err = red:zincrby(user_key, score, userId)
 	if num_err then
 		fm_log(opname, ERR_REDIS_QUERY, red_err)
 		return ERR_REDIS_QUERY
 	end
 
-	local program_res,program_err = red:hincrby(hash_program_key, id, score)
+	local program_res,program_err = red:zincrby(program_key, score, id)
 	if num_err then
 		fm_log(opname, ERR_REDIS_QUERY, red_err)
 		return ERR_REDIS_QUERY
 	end
+end
 
---	
---end
---
+function order_list()
+	local userId = args["userId"]
+	local mtype = tonumber(args["mtype"])
 
-	if (num ~= 1) then
-		user_sql = string.format("insert t_user (userId,%s) values('%s',1) on duplicate key update %s=%s+1", field, userId, field,field)
-		id_sql = string.format("insert t_play (id,ptype,%s) values('%s',%s,1) on duplicate key update %s=%s+1", field, id, ptype, field,field)
+	local list_key = "list:" .. userId .. ":" .. mtype
+	local list,list_err = red:srandmember(list_key,20)
+	if list_err then
+		fm_log(opname, ERR_REDIS_QUERY, red_err)
+		return ERR_REDIS_QUERY
+	end
+
+	local field = ""
+	local list_len = table.getn(list)
+	if (list_len == 0) then
+		ngx.say("[]")
 	else
-		user_sql = string.format("insert t_user (userId,play,duration) values('%s',1,%d) on duplicate key update play=play+1,duration=duration+%d", userId,duration,duration)
-		id_sql = string.format("insert t_play (id,ptype,play,duration) values('%s',%s,1,%d) on duplicate key update play=play+1,duration=duration+%d", id,ptype,duration,duration)
+		for i=1, list_len do
+			field = field .. "'" .. list[i] .. "'," 
+		end
+		--切掉字符串末尾的','
+		field = string.sub(field, 0,-2)
+	
+		local list_sql = string.format("select programId,programName,programUri,programIntro,radioId,albumId,compere,picture,programType,secondLevel,tabSet from a_program where programId in (%s)",field)
+		local res, err = db:query(list_sql)
+		if not res then
+			fm_log(opname, ERR_MYSQL_QUERY, err)
+			return ERR_MYSQL_QUERY
+		end
+		ngx.say(cjson.encode(res))
 	end
-
-	if not user_sql or not id_sql then
-		fm_log(opname, ERR_NULL_SQL)
-		return ERR_PARSE_POSTARGS
-	end
-
-	local res, err = db:query(user_sql .. ";" .. id_sql)
-	if not res then
-		fm_log(opname, ERR_MYSQL_QUERY, err)
-		return ERR_MYSQL_QUERY
-	end
-	return OK_RES
 end
 
 function program_list()
@@ -361,6 +400,7 @@ function main()
 		["programList"] = function() return program_list() end,
 		["top"] = function() return top_list() end,
 		["statistics"] = function() return statistics() end, 
+		["myprogram"] = function() return order_list() end,  --获取收藏/预定节目列表
 	}
 	if not op_action[opname] then
 		fm_log(opname, ERR_OPNAME)
