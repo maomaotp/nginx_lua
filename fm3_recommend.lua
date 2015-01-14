@@ -18,6 +18,9 @@ local DB_TIMEOUT = 5000  --5 sec
 local MAX_SIZE = 1024*1024
 local USER_LOG = "/home/work/logs/fm"
 
+--key
+local SEARCH_KEY_REDIS = "rank:hotwords"
+
 --res code
 local OK_RES = 0
 local ERR_PARSE_POSTARGS = 80001
@@ -390,7 +393,7 @@ function search()
 		fm_log(opname, ERR_NULL_SEARCH, err)
 		return
 	end
-	local red_res,red_err = red:zincrby("rank:hotwords", 1, keywords)
+	local red_res,red_err = red:zincrby(SEARCH_KEY_REDIS, 1, keywords)
 	if red_err then
 		fm_log(opname, ERR_REDIS_QUERY, red_err)
 		return ERR_REDIS_QUERY
@@ -398,7 +401,7 @@ function search()
 end
 
 function hot_words()
-	local red_res,red_err = red:zrange("rank:hotwords", start, page)
+	local red_res,red_err = red:zrange(SEARCH_KEY_REDIS, start, page-1)
 	if not red_res then
 		fm_log(opname, ERR_REDIS_QUERY, red_err)
 		return ERR_REDIS_QUERY
