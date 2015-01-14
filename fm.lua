@@ -60,7 +60,7 @@ http {
 		location /fm{
 			content_by_lua_file "nginx_lua/fm3_recommend.lua";
 		}
-		location /test{
+		location /search{
 			echo_location /fm;
 			echo_location /index.php;
 		}
