@@ -430,7 +430,6 @@ function main()
 		["addComment"] = function() return add_comment() end,
 		["getComment"] = function() return get_comment() end,
 		["getJson"] = function() return get_json() end,
-		["hotwords"] = function() return hot_words() end,
 		["applaud"] = function() return addplaud() end,
 	}
 

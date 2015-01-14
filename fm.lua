@@ -50,15 +50,21 @@ http {
 	server {
 		listen 8090;
 		limit_conn slimits 5;
+		location /foo{
+			echo "hello,php";
+		}
+
 		location /user{
 			content_by_lua_file "nginx_lua/fm3_user.lua";
 		}
 		location /fm{
 			content_by_lua_file "nginx_lua/fm3_recommend.lua";
 		}
-
+		location /test{
+			echo_location /fm;
+			echo_location /index.php;
+		}
 		location ~ \.php$ {
-			root           /php;
 			fastcgi_pass   127.0.0.1:9000;
             fastcgi_index  index.php;
             fastcgi_param  SCRIPT_FILENAME  /home/work/php$fastcgi_script_name;

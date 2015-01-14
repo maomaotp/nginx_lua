@@ -29,6 +29,8 @@ local ERR_GET_POST_BODY = 80007
 local ERR_REDIS_INIT = 80008
 local ERR_REDIS_QUERY = 80009
 local ERR_INEXIST_TYPE = 80010
+local ERR_NULL_SEARCH = 80011
+local ERR_INEXIST_PTYPE = 80012
 
 local err_array = {
 	[0] = "success",
@@ -41,6 +43,8 @@ local err_array = {
 	[80008] = "redis初始化错误",
 	[80009] = "redis查询错误",
 	[80010] = "不存在的节目类型",
+	[80011] = "关键词为null",
+	[80012] = "错误的ptype类型",
 }
 
 function fm_log(opname, code, err)
@@ -381,6 +385,26 @@ function program_list()
 end
 
 function search() 
+	local keywords = args["keywords"]
+	if not keywords then
+		fm_log(opname, ERR_NULL_SEARCH, err)
+		return
+	end
+	local red_res,red_err = red:zincrby("rank:hotwords", 1, keywords)
+	if red_err then
+		fm_log(opname, ERR_REDIS_QUERY, red_err)
+		return ERR_REDIS_QUERY
+	end
+end
+
+function hot_words()
+	local red_res,red_err = red:zrange("rank:hotwords", start, page)
+	if not red_res then
+		fm_log(opname, ERR_REDIS_QUERY, red_err)
+		return ERR_REDIS_QUERY
+	end
+
+	ngx.say(cjson.encode(red_res))
 end
 
 --函数入口
@@ -405,6 +429,7 @@ function main()
 		["top"] = function() return top_list() end,
 		["statistics"] = function() return statistics() end, 
 		["myprogram"] = function() return order_list() end,  --获取收藏/预定节目列表
+		["hotwords"] = function() return hot_words() end,
 		["search"] = function() return search() end,
 	}
 	if not op_action[opname] then

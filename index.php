@@ -1,11 +1,10 @@
 <?php
-
 main();
 function main()
 {
 	#解析post请求内容
 	$keywords = $_POST["keywords"];
-	$type = $_POST["type"];
+	$ptype = $_POST["ptype"];
 	$start = $_POST["start"];
 	$page = $_POST["page"];
 	if(!$start){ 
@@ -18,19 +17,20 @@ function main()
 	$connection = init_db();
 
 	$unicode = str2Unicode($keywords);
-
-	if ($type == "program"){
-		$query_sql = "select programId,programName,programUri,programIntro from a_program where MATCH(searchindex) AGAINST('$unicode')order by duration limit $start,$page";
+	switch ($ptype)
+	{
+		case 1:
+			$query_sql = "select programId,programName,programUri,programIntro from a_program where MATCH(searchindex) AGAINST('$unicode') limit $start,$page";
+			break;
+		case 2:
+			$query_sql = "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where radioState=0 and (nameCn like '%%$keywords%%' or nameEn like '%%$keywords%%') limit $start,$page";
+			break;
+		case 3:
+			$query_sql = "select albumId,albumName,albumIntro,albumType,picture,tabSet from a_album where flag=1 and(albumName like '%%$keywords%%' or tabset like '%%$keywords%%') limit $start,$page";
+			break;
+		default:
+			die('{"describe":"error ptype","code":80012}');
 	}
-	elseif ($type == "radio"){
-		$query_sql = "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where radioState=0 and (nameCn like '%%$keywords%%' or nameEn like '%%$keywords%%') limit $start,$page";
-	}
-	elseif ($type == "album"){
-		$query_sql = "select albumId,albumName,albumIntro,albumType,sharesCount,downloadNumber,picture from a_album where flag=1 and(albumName like '%%$keywords%%' or tag like '%%$keywords%%') limit $start,$page";
-	}
-	else{
-	}
-	echo "$query_sql\n";
 
 	$records = array(); 
 	$select_res = mysql_query($query_sql) or die("query failed\n");
@@ -56,6 +56,7 @@ function init_db()
 	if (!$connection){
 		die("database server connection failed.");
 	}
+	mysql_query("set names utf8");
 	$dbconnect = mysql_select_db($db, $connection);
 	if (!$dbconnect){
 		die("unable to connect to the specified database!");
@@ -81,6 +82,7 @@ function str2Unicode($str, $encoding = 'UTF-8')
 #增加全文索引字段
 function add_index()
 {
+	$connection = init_db();
 	for($i=0; $i<=2; $i++){
 		$query = "select programId,programName,compere,tabSet from a_program";
 		$start = $i*10;
@@ -99,6 +101,8 @@ function add_index()
 		}
 		mysql_free_result($select_res);
 	}
+
+	mysql_close($connection);
 }
 
 function get_program($keywords,$start,$page)
