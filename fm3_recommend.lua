@@ -141,10 +141,12 @@ function radio_recommend()
 		fm_log(opname, ERR_PARSE_POSTARGS)
 		return ERR_PARSE_POSTARGS
 	end
+
+	local src_sql = "select programId,programName,programUri,compere,picture,programIntro,radioId,albumId,programType,secondLevel,duration from a_program"
 	if not programType or (programType == "") then
-	select_sql = string.format("select programId,programName,programUri,compere,picture,programIntro,radioId,albumId,programType,secondLevel from a_program limit %d,%d", start, page)
+		select_sql = string.format("%s limit %d,%d", src_sql, start, page)
 	else
-		select_sql = "select programId,programName,programUri,compere,picture,programIntro,radioId,albumId,programType from a_program where programType="
+		select_sql = src_sql .. " where programType="
 		for number in string.gfind(programType, '%d+') do
 			select_sql = string.format("%s%s or programType=", select_sql, number)
 		end
@@ -247,7 +249,6 @@ function top_list()
 		end
 		action[ptype] = string.format("%s order by field (programId,%s) limit %s,%s", action[ptype], field, start, page)
 	end
-	ngx.say(action[ptype])
 
 	local res, err = db:query(action[ptype])
 	if not res then
