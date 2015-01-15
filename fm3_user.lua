@@ -44,10 +44,6 @@ local err_array = {
 	[90010] = "用户评论失败",
 	[90011] = "评论点赞失败",
 	[90012] = "获取节目评论信息失败",
-
-	[80007] = "获取post body内容错误",
-	[80008] = "用户名或密码错误",
-	[80009] = "用户已存在",
 }
 
 --读取配置文件
@@ -61,31 +57,20 @@ end
 
 function http_resp(code)	
 	local err_array = {
-		[0] = "OK",
-		[80001] = "请求参数错误",
-		[80002] = "数据库请求错误",
-		[80003] = "数据库初始化错误",
-		[80005] = "方法名错误",
-		[80006] = "数据库请求错误",
-		[80007] = "获取post body内容错误",
-		[80008] = "redis初始化错误",
-		[80009] = "redis查询错误",
-		[80010] = "不存在的节目类型",
-		[80011] = "关键词为null",
-		[80012] = "错误的ptype类型",
-		[80013] = "获取手机唯一标识码错误",
-		[80014] = "获取个性电台失败",
-		[80015] = "电台ID和专辑ID不可同时为空",
-		[80016] = "获取专辑或电台信息失败",
-		[80017] = "获取排行信息失败",
-		[80018] = "不存在的ID类型",
-		[80019] = "用户ID/节目ID/类型不可为空",
-		[80020] = "不存在的行为类型",
-		[80021] = "统计用户行为信息失败",
-		[80022] = "获取节目播放时长失败",
-		[80023] = "更新用户行为统计数据信息失败",
-		[80024] = "获取节目列表失败",
-		[80025] = "获取热词失败",
+		[0] = "success",
+		[90000] = "请求方法错误",
+		[90001] = "请求参数不完整",
+		[90002] = "获取用户信息失败",
+		[90003] = "用户ID已存在",
+		[90004] = "用户注册失败",
+		[90005] = "密码错误",
+		[90006] = "登陆类型错误",
+		[90007] = "更新用户信息失败",
+		[90008] = "增加用户消息失败",
+		[90009] = "获取用户消息失败",
+		[90010] = "用户评论失败",
+		[90011] = "评论点赞失败",
+		[90012] = "获取节目评论信息失败",
 	}
 
 	close_db()
@@ -368,7 +353,7 @@ function get_comment()
 		programTime = string.format(" and programTime=%s",programTime)
 	end
 
-	local real_sql = string.format("select A.userId,A.content,A.applaud,A.addTime,B.picture,A.commentId,B.nickname from p_comment A,u_userInfo B where A.programId='%s' and B.userId=A.userId %s limit %s,%s", programId,programTime,start,page)
+	local real_sql = string.format("select A.userId,A.content,A.applaud,B.picture,A.commentId,B.nickname from p_comment A,u_userInfo B where A.programId='%s' and B.userId=A.userId %s limit %s,%s", programId,programTime,start,page)
 	local res, err = db:query(real_sql)
 	if not res then
 		ngx.log(ngx.ERR, err)
