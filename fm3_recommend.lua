@@ -24,7 +24,6 @@ local SEARCH_KEY_REDIS = "rank:hotwords"
 --res code
 local OK_RES = 0
 local ERR_PARSE_POSTARGS = 80001
-local ERR_MYSQL_QUERY = 80002
 local ERR_MYSQL_INIT = 80003
 local ERR_OPNAME = 80005
 local ERR_NULL_SQL = 80006

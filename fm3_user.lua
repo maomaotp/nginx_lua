@@ -15,6 +15,7 @@ local CONFIG_FILE = "/home/work/conf/fm_category.json"
 
 --res code
 local OK_RES = 0
+local ERR_OPNAME = 90000
 local ERR_NULL_FIELD = 90001
 local ERR_GET_USERINFO = 90002
 local ERR_EXIST_USER = 90003
@@ -30,6 +31,7 @@ local ERR_FAIL_GETCOMMENT = 90012
 
 local err_array = {
 	[0] = "success",
+	[90000] = "请求方法错误",
 	[90001] = "请求参数不完整",
 	[90002] = "获取用户信息失败",
 	[90003] = "用户ID已存在",
