@@ -8,12 +8,13 @@
 ["applaud"] 	fm3_user.lua	/^		["applaud"] = function() return addplaud() end,$/;"	f
 ["getComment"] 	fm3_user.lua	/^		["getComment"] = function() return get_comment() end,$/;"	f
 ["getJson"] 	fm3_user.lua	/^		["getJson"] = function() return get_json() end,$/;"	f
-["hotwords"] 	fm3_user.lua	/^		["hotwords"] = function() return hot_words() end,$/;"	f
+["hotwords"] 	fm3_recommend.lua	/^		["hotwords"] = function() return hot_words() end,$/;"	f
 ["logIn"] 	fm3_user.lua	/^		["logIn"] = function() return user_login() end,$/;"	f
-["myprogram"] 	fm3_recommend.lua	/^		["myprogram"] = function() return order_list() end, $/;"	f
+["myprogram"] 	fm3_recommend.lua	/^		["myprogram"] = function() return order_list() end,  --获取收藏\/预定节目列表$/;"	f
 ["programInfo"] 	fm3_recommend.lua	/^		["programInfo"] = function() return program_info() end,$/;"	f
 ["programList"] 	fm3_recommend.lua	/^		["programList"] = function() return program_list() end,$/;"	f
 ["register"] 	fm3_user.lua	/^		["register"] = function() return user_register() end,$/;"	f
+["search"] 	fm3_recommend.lua	/^		["search"] = function() return search() end,$/;"	f
 ["sendMessage"] 	fm3_user.lua	/^		["sendMessage"] = function() return send_message() end,$/;"	f
 ["slackerRadio"] 	fm3_recommend.lua	/^		["slackerRadio"] = function() return radio_recommend() end,$/;"	f
 ["statistics"] 	fm3_recommend.lua	/^		["statistics"] = function() return statistics() end, $/;"	f
@@ -25,7 +26,7 @@ add_index	index.php	/^function add_index()$/;"	f
 add_message	fm3_user.lua	/^function add_message()$/;"	f
 addplaud	fm3_user.lua	/^function addplaud() $/;"	f
 arr	index.php	/^	$arr = str_split($str, 2);$/;"	v
-close_mysql	fm3_recommend.lua	/^function close_mysql()$/;"	f
+close_db	fm3_recommend.lua	/^function close_db()$/;"	f
 close_mysql	fm3_user.lua	/^function close_mysql()$/;"	f
 close_mysql	mysql.lua	/^function close_mysql()$/;"	f
 close_redis	redis.lua	/^function close_redis()$/;"	f
@@ -37,20 +38,19 @@ dec	index.php	/^	    $dec = hexdec(bin2hex($tmp));$/;"	v
 encoding	index.php	/^function str2Unicode($str, $encoding = 'UTF-8') $/;"	v
 error_res	mysql.lua	/^function error_res(err_code)	$/;"	f
 error_res	redis.lua	/^function error_res(err_code)	$/;"	f
-fm_log	fm3_recommend.lua	/^function fm_log(opname, code, err)$/;"	f
-fm_log	fm3_user.lua	/^function fm_log(opname, code, err)$/;"	f
+fm_log	fm3_recommend.lua	/^function fm_log(opName, code, err)$/;"	f
 get_comment	fm3_user.lua	/^function get_comment()$/;"	f
 get_json	fm3_user.lua	/^function get_json()$/;"	f
 get_program	index.php	/^function get_program($keywords,$start,$page)$/;"	f
 host	index.php	/^	$host = "123.57.41.242";$/;"	v
+hot_words	fm3_recommend.lua	/^function hot_words()$/;"	f
 hot_words	fm3_user.lua	/^function hot_words()$/;"	f
 http_resp	fm3_recommend.lua	/^function http_resp(code)	$/;"	f
 http_resp	fm3_user.lua	/^function http_resp(code)	$/;"	f
+init_db	fm3_recommend.lua	/^function init_db()$/;"	f
 init_db	index.php	/^function init_db()$/;"	f
-init_mysql	fm3_recommend.lua	/^function init_mysql()$/;"	f
 init_mysql	fm3_user.lua	/^function init_mysql()$/;"	f
 init_mysql	mysql.lua	/^function init_mysql()$/;"	f
-init_redis	fm3_recommend.lua	/^function init_redis()$/;"	f
 init_redis	json.lua	/^function init_redis()$/;"	f
 init_redis	redis.lua	/^function init_redis()$/;"	f
 json	index.php	/^	$json = json_encode($records); $/;"	v
@@ -73,19 +73,21 @@ pass	index.php	/^	$pass = "lingban2014";$/;"	v
 programId	index.php	/^			$programId = $r["programId"];$/;"	v
 program_info	fm3_recommend.lua	/^function program_info()	$/;"	f
 program_list	fm3_recommend.lua	/^function program_list()$/;"	f
+ptype	index.php	/^	$ptype = $_POST["ptype"];$/;"	v
 query	index.php	/^		$query = "select programId,programName,compere,tabSet from a_program";$/;"	v
 query_all	json.lua	/^function query_all()$/;"	f
 query_city	mysql.lua	/^function query_city(provinceSpell)$/;"	f
 query_fm	mysql.lua	/^function query_fm(city_name, radio_level, classification)$/;"	f
 query_show	mysql.lua	/^function query_show(radioId)$/;"	f
-query_sql	index.php	/^		$query_sql = "select albumId,albumName,albumIntro,albumType,sharesCount,downloadNumber,picture from a_album where flag=1 and(albumName like '%%$keywords%%' or tag like '%%$keywords%%') limit $start,$page";$/;"	v
-query_sql	index.php	/^		$query_sql = "select programId,programName,programUri,programIntro from a_program where MATCH(searchindex) AGAINST('$unicode')order by duration limit $start,$page";$/;"	v
-query_sql	index.php	/^		$query_sql = "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where radioState=0 and (nameCn like '%%$keywords%%' or nameEn like '%%$keywords%%') limit $start,$page";$/;"	v
+query_sql	index.php	/^			$query_sql = "select albumId,albumName,albumIntro,albumType,picture,tabSet from a_album where flag=1 and(albumName like '%%$keywords%%' or tabset like '%%$keywords%%') limit $start,$page";$/;"	v
+query_sql	index.php	/^			$query_sql = "select programId,programName,programUri,programIntro from a_program where MATCH(searchindex) AGAINST('$unicode') limit $start,$page";$/;"	v
+query_sql	index.php	/^			$query_sql = "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where radioState=0 and (nameCn like '%%$keywords%%' or nameEn like '%%$keywords%%') limit $start,$page";$/;"	v
 query_sql	index.php	/^	$query_sql = "select programId,programName,programUri,programIntro from a_program where MATCH(searchindex) AGAINST('$unicode')order by duration limit $start,$page";$/;"	v
 query_top	mysql.lua	/^function query_top(top_name)$/;"	f
 query_top	redis.lua	/^function query_top(key)$/;"	f
 radio_recommend	fm3_recommend.lua	/^function radio_recommend()$/;"	f
 records	index.php	/^	$records = array(); $/;"	v
+search	fm3_recommend.lua	/^function search() $/;"	f
 search_fm	mysql.lua	/^function search_fm(fm_name)$/;"	f
 select_res	index.php	/^		$select_res = mysql_query($select_sql) or die("query failed");$/;"	v
 select_res	index.php	/^	$select_res = mysql_query($query_sql) or die("query failed\\n");$/;"	v
@@ -99,7 +101,6 @@ str	index.php	/^			$str = $r["programName"] . "" . $r["compere"] . "" . $r["tabS
 str	index.php	/^	$str = iconv($encoding, 'UCS-2', $str);$/;"	v
 str2Unicode	index.php	/^function str2Unicode($str, $encoding = 'UTF-8') $/;"	f
 top_list	fm3_recommend.lua	/^function top_list()$/;"	f
-type	index.php	/^	$type = $_POST["type"];$/;"	v
 unicode	index.php	/^			$unicode = str2Unicode($str);$/;"	v
 unicode	index.php	/^	$unicode = '';$/;"	v
 unicode	index.php	/^	$unicode = str2Unicode($keywords);$/;"	v

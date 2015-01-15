@@ -1,6 +1,5 @@
 worker_processes  2;
 
-error_log logs/error.log error;
 pid logs/nginx.pid;
 user root;
 

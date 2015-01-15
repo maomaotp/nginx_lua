@@ -14,7 +14,7 @@ local REDIS_SERVER_IP = "127.0.0.1"
 local REDIS_SERVER_PORT = 6379
 local REDIS_TIMEOUT = 1000
 
-local DB_TIMEOUT = 5000  --5 sec
+local DB_TIMEOUT = 8000  --5 sec
 local MAX_SIZE = 1024*1024
 local USER_LOG = "/home/work/logs/fm"
 
@@ -28,51 +28,37 @@ local ERR_MYSQL_QUERY = 80002
 local ERR_MYSQL_INIT = 80003
 local ERR_OPNAME = 80005
 local ERR_NULL_SQL = 80006
-local ERR_GET_POST_BODY = 80007
+local ERR_READ_POST_BODY = 80007
 local ERR_REDIS_INIT = 80008
 local ERR_REDIS_QUERY = 80009
 local ERR_INEXIST_TYPE = 80010
 local ERR_NULL_SEARCH = 80011
 local ERR_INEXIST_PTYPE = 80012
+local ERR_NULL_PHONEIDENTIFY = 80013
+local ERR_GET_RECOMMENT = 80014
+local ERR_NULL_RADIOALBUM = 80015
+local ERR_GET_RADIOALBUMINFO = 80016
+local ERR_GET_TOP = 80017
+local ERR_INEXIST_PTYPE = 80018
+local ERR_INEXIST_USERID = 80019
+local ERR_INEXIST_ACTION = 80020
+local ERR_FAIL_STATISTICS = 80021
+local ERR_FAIL_DURATION = 80022
+local ERR_FAIL_STATICSNUM = 80023
+local ERR_FAIL_ORDERLIST = 80024
+local ERR_FAIL_HOTWORDS = 80025
 
-local err_array = {
-	[0] = "success",
-	[80001] = "请求参数错误",
-	[80002] = "数据库请求错误",
-	[80003] = "数据库初始化错误",
-	[80005] = "方法名错误",
-	[80006] = "数据库请求错误",
-	[80007] = "获取post body内容错误",
-	[80008] = "redis初始化错误",
-	[80009] = "redis查询错误",
-	[80010] = "不存在的节目类型",
-	[80011] = "关键词为null",
-	[80012] = "错误的ptype类型",
-}
-
-function fm_log(opname, code, err)
+--[[lua写日志
+function fm_log(opName, code, err)
 	local file = string.format("%s_%s.log", USER_LOG, os.date("%Y%m"))
 	local f = assert(io.open(file, "a"))
-	f:write(string.format("%s %s %s %s\n", os.date("%Y-%m-%d %H:%M:%S"), opname, code, err))
+	f:write(string.format("%s %s %s %s\n", os.date("%Y-%m-%d %H:%M:%S"), opName, code, err))
 	f:close()
 end
+]]
 
---init redis 
-function init_redis()
-	red = redis:new()
-    red:set_timeout(REDIS_TIMEOUT) -- 1 sec
-
-    local ok, err = red:connect(REDIS_SERVER_IP, REDIS_SERVER_PORT)
-    if not ok then
-		fm_log(opname, ERR_REDIS_INIT, err)
-        return
-    end
-	return OK_RES
-end
-
-
---初始化mysql连接
-function init_mysql()
+--初始化mysql、redis
+function init_db()
 	db = assert(mysql:new())
 	
 	db:set_timeout(DB_TIMEOUT)
@@ -84,69 +70,110 @@ function init_mysql()
 	    password = MYSQL_PASSWD,
 	    max_packet_size = MAX_SIZE
 	}
-	
 	if not ok then
-		fm_log(opname, ERR_MYSQL_INIT, err)
-	    return
+		ngx.log(ngx.ERR, err)
+		http_resp(ERR_MYSQL_INIT)
 	end
 
-	return OK_RES
+	--初始化redis
+	red = assert(redis:new())
+    red:set_timeout(REDIS_TIMEOUT) -- 1 sec
+
+    local ok, err = red:connect(REDIS_SERVER_IP, REDIS_SERVER_PORT)
+    if not ok then
+		ngx.log(ngx.ERR, err)
+		http_resp(ERR_REDIS_INIT)
+    end
 end
 
 function parse_postargs()
 	ngx.req.read_body()
-	args = ngx.req.get_post_args()
+	args,err = ngx.req.get_post_args()
 	if not args then
-		fm_log(opname, ERR_GET_POST_BODY, err)
-		return
+		ngx.log(ngx.ERR, err)
+		http_resp(ERR_READ_POST_BODY)
 	end
 	
 	--解析翻页参数
-	start = args["start"]
-	page = args["page"]
-	if not start then start = "0" end
-	if not page then page = "20" end
-	
-	opname = args["opName"]
-	if not opname then
-		fm_log(opname, ERR_PARSE_POSTARGS, err)
-		return
-	end
-
-	return OK_RES
+	start = args["start"] or 0
+	page = args["page"] or 20
 end
 
-function close_mysql()
-	--关闭连接
+function close_db()
+	--mysql关闭连接
 --	local ok, err = db:close()
 --	if not ok then
 --	    ngx.say("failed to close: ", err)
 --	    return 10010
 --	end
-	-- put it into the connection pool of size 100,
-	-- with 10 seconds max idle timeout
+
+-- put it into the connection pool of size 100,
+-- with 10 seconds max idle timeout
 	local ok, err = db:set_keepalive(30000, 100)
 	if not ok then
-		fm_log(opname, ERR_MYSQL_CONNECT, err)
-		return ERR_MYSQL_QUERY
+		ngx.log(ngx.ERR, err)
 	end
-	return 0
+
+	--redis close
+-- put it into the connection pool of size 100,
+-- with 10 seconds max idle time
+    local ok, err = red:set_keepalive(30000, 100)
+    if not ok then
+		ngx.log(ngx.ERR, err)
+    end
+
+    -- or just close the connection right away:
+--     local ok, err = red:close()
+--     if not ok then
+--         ngx.say("failed to close: ", err)
+--         return 10000
+--     end
 end
 
 function http_resp(code)	
-	close_mysql()
+	local err_array = {
+		[0] = "OK",
+		[80001] = "请求参数错误",
+		[80002] = "数据库请求错误",
+		[80003] = "数据库初始化错误",
+		[80005] = "方法名错误",
+		[80006] = "数据库请求错误",
+		[80007] = "获取post body内容错误",
+		[80008] = "redis初始化错误",
+		[80009] = "redis查询错误",
+		[80010] = "不存在的节目类型",
+		[80011] = "关键词为null",
+		[80012] = "错误的ptype类型",
+		[80013] = "获取手机唯一标识码错误",
+		[80014] = "获取个性电台失败",
+		[80015] = "电台ID和专辑ID不可同时为空",
+		[80016] = "获取专辑或电台信息失败",
+		[80017] = "获取排行信息失败",
+		[80018] = "不存在的ID类型",
+		[80019] = "用户ID/节目ID/类型不可为空",
+		[80020] = "不存在的行为类型",
+		[80021] = "统计用户行为信息失败",
+		[80022] = "获取节目播放时长失败",
+		[80023] = "更新用户行为统计数据信息失败",
+		[80024] = "获取节目列表失败",
+		[80025] = "获取热词失败",
+	}
+
+	close_db()
 	local res_str = string.format('{"describe":"%s","code":%d}', err_array[code],code)
 	ngx.say(res_str)
+	ngx.exit(ngx.HTTP_OK)
 end
 
+--获取个性电台
 function radio_recommend()
 	local select_sql = nil
 	local phoneIdentify = args["phoneIdentify"]
 	local programType = args["programType"]
 
 	if not phoneIdentify then 
-		fm_log(opname, ERR_PARSE_POSTARGS)
-		return ERR_PARSE_POSTARGS
+		ngx.log(ngx.ERR, ERR_NULL_PHONEIDENTIFY)
+		http_resp(ERR_NULL_PHONEIDENTIFY)
 	end
 
 	local src_sql = "select programId,programName,programUri,compere,picture,programIntro,radioId,albumId,programType,secondLevel,duration from a_program"
@@ -163,18 +190,16 @@ function radio_recommend()
 
 	local res, err = db:query(select_sql)
 	if not res then
-		fm_log(opname, ERR_MYSQL_QUERY, err)
-		return ERR_MYSQL_QUERY
+		ngx.log(ngx.ERR, err)
+		http_resp(ERR_GET_RECOMMENT)
 	end
-
 	ngx.say(cjson.encode(res))
 
 	--更新用户标签
 	local user_sql = string.format("insert into u_userInfo (userId,userTag) values('%s', '%s') on duplicate key update userTag='%s'", phoneIdentify, programType, programType)
 	local res, err = db:query(user_sql)
 	if not res then
-		fm_log(opname, ERR_MYSQL_QUERY, err)
-		return ERR_MYSQL_QUERY
+		ngx.log(ngx.ERR, err)
 	end
 end
 
@@ -184,8 +209,8 @@ function program_info()
 	local sql = nil
 
 	if not radioId and not albumId then
-		fm_log(opname, ERR_PARSE_POSTARGS)
-		return ERR_PARSE_POSTARGS
+		ngx.log(ngx.ERR, ERR_NULL_RADIOALBUM)
+		http_resp(ERR_NULL_RADIOALBUM)
 	elseif radioId and not albumId then
 		sql = string.format("select radioId,nameCn,nameEn,logo,url,introduction,radioLevel,provinceSpell,cityName,classification from Radio_Info where radioID='%s'", radioId)
 	elseif albumId and not radioId then
@@ -196,33 +221,29 @@ function program_info()
 
 	local res, err = db:query(sql)
 	if not res then
-		fm_log(opname, ERR_MYSQL_QUERY, err)
-		return ERR_MYSQL_QUERY
+		ngx.log(ngx.ERR, err)
+		http_resp(ERR_GET_RADIOALBUMINFO)
 	end
-
 	ngx.say(cjson.encode(res))
 end
 
 function top_list()
-	local ptype = tonumber(args["ptype"])
-	local top_sql
-	if not ptype then
-		fm_log(opname, ERR_PARSE_POSTARGS)
-		return ERR_PARSE_POSTARGS
-	end
+	local ptype = tonumber(args["ptype"]) or 0
+	local top_sql = nil
+	local field = ""
 
 	local rank_key = "rank:program:play:" .. ptype
 
 	local list,list_err = red:zrange(rank_key, 0, -1)
 	if list_err then
-		fm_log(opname, ERR_REDIS_QUERY, red_err)
-		return ERR_REDIS_QUERY
+		ngx.log(ngx.ERR, list_err)
+		http_resp(ERR_GET_TOP)
 	end
 	
-	local field = ""
 	local list_len = table.getn(list)
 	if (list_len == 0) then
-		ngx.say("[]")
+		ngx.say("{}")
+		ngx.exit(ngx.HTTP_OK)
 		return
 	else
 		for i=1, list_len do
@@ -239,8 +260,8 @@ function top_list()
 	}
 
 	if not action[ptype] then
-		fm_log(opname, ERR_INEXIST_TYPE)
-		return ERR_INEXIST_TYPE
+		ngx.log(ngx.ERR, ERR_INEXIST_PTYPE)
+		http_resp(ERR_INEXIST_PTYPE)
 	end
 
 	if (ptype == 1) then
@@ -259,10 +280,9 @@ function top_list()
 
 	local res, err = db:query(action[ptype])
 	if not res then
-		fm_log(opname, ERR_MYSQL_QUERY, err)
-		return ERR_MYSQL_QUERY
+		ngx.log(ngx.ERR, err)
+		http_resp(ERR_GET_TOP)
 	end
-
 	ngx.say(cjson.encode(res))
 end
 
@@ -270,15 +290,15 @@ function statistics()
 	local userId = args["userId"]
 	local id = args["id"]
 	local ptype = args["ptype"]
-	local num = tonumber(args["operate"])
+	local index = tonumber(args["operate"]) or 0
 	local duration = args["duration"]
 
 	local user_sql = nil
 	local id_sql = nil
 
-	if not userId or not id or not ptype or not num then
-		fm_log(opname, ERR_PARSE_POSTARGS)
-		return ERR_PARSE_POSTARGS
+	if not userId or not id or not ptype then
+		ngx.log(ngx.ERR, ERR_INEXIST_USERID)
+		http_resp(ERR_INEXIST_USERID)
 	end
 	-- 1:收听时长  2:分享 3:下载 4:喜爱 5:收藏 6:不喜欢 7:电台评论(该操作自己调用) 8:预定
 	local user_action = {
@@ -290,64 +310,61 @@ function statistics()
 		[6] = "dislike",
 		[7] = "comment",
 	}
-	local field = user_action[num]
+	local field = user_action[index]
 	if not field then
-		fm_log(opname, ERR_PARSE_POSTARGS)
-		return ERR_PARSE_POSTARGS
+		ngx.log(ngx.ERR, ERR_INEXIST_ACTION)
+		http_resp(ERR_INEXIST_ACTION)
 	end
 
 --redis add
 	--用户收藏/喜欢/下载..列表
-	local set_key = "list:" .. userId .. ":" .. num
+	local set_key = "list:" .. userId .. ":" .. index
 	local red_res,red_err = red:sadd(set_key, id)
-	if red_err then
-		fm_log(opname, ERR_REDIS_QUERY, red_err)
-		return ERR_REDIS_QUERY
+	if not red_res then
+		ngx.log(ngx.ERR, red_err)
+		http_resp(ERR_FAIL_STATISTICS)
 	end
-	--用户收藏/喜欢/下载..数目统计
-	
 
+	--用户收藏/喜欢/下载..数目统计
 	local score=nil
-	if (num == 1) then 
+	if (index == 1) then 
 		if not duration then
-			fm_log(opname, ERR_PARSE_POSTARGS)
-			return ERR_PARSE_POSTARGS
+			ngx.log(ngx.ERR, ERR_FAIL_DURATION)
+			http_resp(ERR_FAIL_DURATION)
 		end
 		score=duration 
 	else score=1 
 	end
 
-	local user_key = "rank:user" .. ":" .. user_action[num]
-	local program_key = "rank:program" .. ":" .. user_action[num] .. ":" .. ptype
+	local user_key = "rank:user" .. ":" .. user_action[index]
+	local program_key = "rank:program" .. ":" .. user_action[index] .. ":" .. ptype
 
 	local user_res,user_err = red:zincrby(user_key, score, userId)
-	if num_err then
-		fm_log(opname, ERR_REDIS_QUERY, red_err)
-		return ERR_REDIS_QUERY
-	end
-
 	local program_res,program_err = red:zincrby(program_key, score, id)
-	if num_err then
-		fm_log(opname, ERR_REDIS_QUERY, red_err)
-		return ERR_REDIS_QUERY
+	if not user_res or not program_res then
+		user_err = user_err or program_err
+		ngx.log(ngx.ERR, user_err)
+		http_resp(ERR_FAIL_STATICSNUM)
 	end
 end
 
+--获取收藏/预定节目列表
 function order_list()
 	local userId = args["userId"]
-	local mtype = tonumber(args["mtype"])
+	local mtype = tonumber(args["mtype"]) or 0
 
 	local list_key = "list:" .. userId .. ":" .. mtype
 	local list,list_err = red:srandmember(list_key,20)
-	if list_err then
-		fm_log(opname, ERR_REDIS_QUERY, red_err)
-		return ERR_REDIS_QUERY
+	if not list then
+		ngx.log(ngx.ERR, list_err)
+		http_resp(ERR_FAIL_ORDERLIST)
 	end
 
 	local field = ""
 	local list_len = table.getn(list)
 	if (list_len == 0) then
-		ngx.say("[]")
+		ngx.say("{}")
+		ngx.exit(ngx.HTTP_OK)
 	else
 		for i=1, list_len do
 			field = field .. "'" .. list[i] .. "'," 
@@ -358,8 +375,8 @@ function order_list()
 		local list_sql = string.format("select programId,programName,programUri,programIntro,radioId,albumId,compere,picture,programType,secondLevel,tabSet from a_program where programId in (%s)",field)
 		local res, err = db:query(list_sql)
 		if not res then
-			fm_log(opname, ERR_MYSQL_QUERY, err)
-			return ERR_MYSQL_QUERY
+			ngx.log(ngx.ERR, err)
+			http_resp(ERR_FAIL_ORDERLIST)
 		end
 		ngx.say(cjson.encode(res))
 	end
@@ -375,14 +392,14 @@ function program_list()
 	elseif programId then
 		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where programType=(select programType from a_program where programId='%s') limit %d,%d", programId, start, page)
 	else
-		fm_log(opname, ERR_PARSE_POSTARGS)
-		return ERR_PARSE_POSTARGS
+		ngx.log(ngx.ERR, ERR_NULL_RADIOALBUM)
+		http_resp(ERR_NULL_RADIOALBUM)
 	end
 
 	local res, err = db:query(select_sql)
 	if not res then
-		fm_log(opname, ERR_MYSQL_QUERY, err)
-		return ERR_MYSQL_QUERY
+		ngx.log(ngx.ERR, err)
+		http_resp(ERR_FAIL_ORDERLIST)
 	end
 	ngx.say(cjson.encode(res))
 end
@@ -390,40 +407,27 @@ end
 function search() 
 	local keywords = args["keywords"]
 	if not keywords then
-		fm_log(opname, ERR_NULL_SEARCH, err)
-		return
+		ngx.log(ngx.ERR, "null keywords")
 	end
 	local red_res,red_err = red:zincrby(SEARCH_KEY_REDIS, 1, keywords)
 	if red_err then
-		fm_log(opname, ERR_REDIS_QUERY, red_err)
-		return ERR_REDIS_QUERY
+		ngx.log(ngx.ERR, red_err)
 	end
 end
 
 function hot_words()
 	local red_res,red_err = red:zrange(SEARCH_KEY_REDIS, start, page-1)
 	if not red_res then
-		fm_log(opname, ERR_REDIS_QUERY, red_err)
-		return ERR_REDIS_QUERY
+		ngx.log(ngx.ERR, red_err)
+		http_resp(ERR_FAIL_HOTWORDS)
 	end
-
 	ngx.say(cjson.encode(red_res))
 end
 
 --函数入口
 function main()
-	if (init_mysql() ~= 0) then
-		http_resp(ERR_MYSQL_INIT)
-		return
-	end
-	if (init_redis() ~= 0) then
-		http_resp(ERR_REDIS_INIT)
-		return
-	end
-	if (parse_postargs() ~= 0) then
-	    http_resp(ERR_GET_POST_BODY)	
-		return 
-	end
+	init_db()
+	parse_postargs()
 
 	local op_action = {
 		["slackerRadio"] = function() return radio_recommend() end,
@@ -435,13 +439,14 @@ function main()
 		["hotwords"] = function() return hot_words() end,
 		["search"] = function() return search() end,
 	}
-	if not op_action[opname] then
-		fm_log(opname, ERR_OPNAME)
-		http_resp(ERR_OPNAME)	
-		return
+
+	opName = args["opName"]
+	if not op_action[opName] then
+		ngx.log(ngx.ERR, "get opName error")
+		http_resp(ERR_OPNAME)
 	end
 
-	local res_code = op_action[opname]()
+	local res_code = op_action[opName]()
 
 	if res_code then
 		http_resp(res_code)

@@ -25,21 +25,20 @@ function error_res(err_code)
 end
 
 function close_redis()
-
-    -- put it into the connection pool of size 100,
-    -- with 10 seconds max idle time
---    local ok, err = red:set_keepalive(10000, 100)
---    if not ok then
---        ngx.say("failed to set keepalive: ", err)
---        return
---    end
+-- put it into the connection pool of size 100,
+-- with 10 seconds max idle time
+    local ok, err = red:set_keepalive(10000, 100)
+    if not ok then
+        ngx.say("failed to set keepalive: ", err)
+        return
+    end
 
     -- or just close the connection right away:
-     local ok, err = red:close()
-     if not ok then
-         ngx.say("failed to close: ", err)
-         return 10000
-     end
+--     local ok, err = red:close()
+--     if not ok then
+--         ngx.say("failed to close: ", err)
+--         return 10000
+--     end
 end
 
 
