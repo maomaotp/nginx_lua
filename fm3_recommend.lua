@@ -213,9 +213,9 @@ function program_info()
 	elseif radioId and not albumId then
 		sql = string.format("select radioId,nameCn,nameEn,logo,url,introduction,radioLevel,provinceSpell,cityName,classification from Radio_Info where radioID='%s'", radioId)
 	elseif albumId and not radioId then
-		sql = string.format("select albumId,albumName,picture,albumIntro,tabset,albumType from a_album where albumId='%s'", albumId)
+		sql = string.format("select albumId,albumName,picture,albumIntro,tabset,albumType,updateTime from a_album where albumId='%s'", albumId)
 	else
-		sql = string.format("select A.radioId,A.nameCn,A.nameEn,A.logo,A.url,A.introduction,A.radioLevel,A.provinceSpell,A.cityName,A.classification,B.albumName,B.picture,B.albumId,B.albumIntro,B.tabset,B.albumType from Radio_Info A, a_album B where A.radioID='%s' and B.albumId='%s'", radioId, albumId)
+		sql = string.format("select A.radioId,A.nameCn,A.nameEn,A.logo,A.url,A.introduction,A.radioLevel,A.provinceSpell,A.cityName,A.classification,B.albumName,B.picture,B.albumId,B.albumIntro,B.tabset,B.albumType,B.updateTime from Radio_Info A, a_album B where A.radioID='%s' and B.albumId='%s'", radioId, albumId)
 	end
 
 	local res, err = db:query(sql)
@@ -255,7 +255,7 @@ function top_list()
 	local action = {
 		[1] = string.format("select programId,programName,programUri,compere,radioId,albumId,picture,programType,secondLevel,tabSet from a_program where programId in (%s)",field),
 		[2] = string.format("select radioId,nameCn,nameEn,url,introduction,radioLevel,provinceSpell,cityName,logo,classification from Radio_Info where radioId in (%s) order by field (radioId,%s) limit %s,%s", field, field, start, page),
-		[3] = string.format("select albumId,albumName,albumIntro,tabSet,albumType,picture from a_album where albumId in (%s) order by field (albumId,%s) limit %s,%s", field, field, start, page),
+		[3] = string.format("select albumId,albumName,albumIntro,tabSet,albumType,picture,updateTime from a_album where albumId in (%s) order by field (albumId,%s) limit %s,%s", field, field, start, page),
 	}
 
 	if not action[ptype] then

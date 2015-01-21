@@ -12,10 +12,14 @@ http {
 	#限制一个IP最多的并发连接数
 	limit_conn_zone $binary_remote_addr zone=slimits:5m;
 
+	#客户端请求包体最大值限制
+	client_max_body_size 100k;
+
 	#开启ssl加密
 	ssl on;
 	ssl_certificate ../conf/ca.crt;
 	ssl_certificate_key ../conf/server.key;
+
 
 	log_format access_log '[$time_local] $remote_addr $request_uri '
 					'[$http_user_agent] $bytes_sent $request_time '
@@ -32,34 +36,36 @@ http {
 		listen 8080;
 		limit_conn slimits 5;
 
-		if ($request_method !~ ^(GET|POST)$ ) {
+		if ($request_method !~ ^(POST)$ ) {
 			return 444;
 		}
 
-        location /query_top{
+        location  = /query_top{
 			content_by_lua_file "nginx_lua/redis.lua";
 		}
-        location /lingbanfm{
+        location  = /lingbanfm{
 			content_by_lua_file "nginx_lua/mysql.lua";
 		}
-		location /test{
+		location  = /test{
 			content_by_lua_file "nginx_lua/json.lua";
 		}
     }
 	server {
 		listen 8090;
 		limit_conn slimits 5;
-		location /foo{
-			echo "hello,php";
+
+		#只允许post方法，如果需要get方法将 POST 改为  POST|GET
+		if ($request_method !~ ^(POST)$ ) {
+			return 444;
 		}
 
-		location /user{
+		location = /user{
 			content_by_lua_file "nginx_lua/fm3_user.lua";
 		}
-		location /fm{
+		location = /fm{
 			content_by_lua_file "nginx_lua/fm3_recommend.lua";
 		}
-		location /search{
+		location = /search{
 			echo_location /fm;
 			echo_location /index.php;
 		}
