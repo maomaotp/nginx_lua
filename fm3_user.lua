@@ -330,7 +330,6 @@ function addplaud()
 	if (applaud == 0) then applaud = -1 end
 
 	local u_sql = string.format("update p_comment set applaud=applaud+%d where commentId=%s",applaud, commentId)
-	ngx.say(u_sql)
 	local res, err = db:query(u_sql)
 	if not res then
 		ngx.log(ngx.ERR, err)
