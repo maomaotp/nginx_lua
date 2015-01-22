@@ -29,7 +29,6 @@ http {
 
 	keepalive_timeout 1200;
 	upstream mysvr{
-		server 192.168.1.120:8080 weight=2;
 		server 192.168.1.120:8090 weight=2;
 	}
 	server {

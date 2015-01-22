@@ -379,7 +379,7 @@ function main()
 		["addComment"] = function() return add_comment() end,
 		["getComment"] = function() return get_comment() end,
 		["getJson"] = function() return get_json() end,
-		["applaud"] = function() return addplaud() end,
+		["addplaud"] = function() return addplaud() end,
 	}
 
 	opName = args["opName"]
