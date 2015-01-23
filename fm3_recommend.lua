@@ -217,11 +217,11 @@ function program_info()
 		ngx.log(ngx.ERR, ERR_NULL_RADIOALBUM)
 		http_resp(ERR_NULL_RADIOALBUM)
 	elseif radioId and not albumId then
-		sql = string.format("select radioId,nameCn,nameEn,logo,url,introduction,radioLevel,provinceSpell,cityName,classification from Radio_Info where radioID='%s'", radioId)
+		sql = string.format("select radioId,nameCn,nameEn,logo,url,introduction,radioLevel,provinceSpell,cityName,classification,isOffline from Radio_Info where radioID='%s'", radioId)
 	elseif albumId and not radioId then
 		sql = string.format("select albumId,albumName,picture,albumIntro,tabset,albumType,updateTime from a_album where albumId='%s'", albumId)
 	else
-		sql = string.format("select A.radioId,A.nameCn,A.nameEn,A.logo,A.url,A.introduction,A.radioLevel,A.provinceSpell,A.cityName,A.classification,B.albumName,B.picture,B.albumId,B.albumIntro,B.tabset,B.albumType,B.updateTime from Radio_Info A, a_album B where A.radioID='%s' and B.albumId='%s'", radioId, albumId)
+		sql = string.format("select A.radioId,A.nameCn,A.nameEn,A.logo,A.url,A.introduction,A.radioLevel,A.isOffline,A.provinceSpell,A.cityName,A.classification,B.albumName,B.picture,B.albumId,B.albumIntro,B.tabset,B.albumType,B.updateTime from Radio_Info A, a_album B where A.radioID='%s' and B.albumId='%s'", radioId, albumId)
 	end
 
 	local res, err = db:query(sql)
@@ -260,7 +260,7 @@ function top_list()
 
 	local action = {
 		[1] = string.format("select programId,programName,programUri,compere,radioId,albumId,picture,programType,secondLevel,tabSet from a_program where programId in (%s)",field),
-		[2] = string.format("select radioId,nameCn,nameEn,url,introduction,radioLevel,provinceSpell,cityName,logo,classification from Radio_Info where radioId in (%s) order by field (radioId,%s) limit %s,%s", field, field, start, page),
+		[2] = string.format("select radioId,nameCn,nameEn,url,introduction,radioLevel,provinceSpell,cityName,logo,classification,isOffline from Radio_Info where radioId in (%s) order by field (radioId,%s) limit %s,%s", field, field, start, page),
 		[3] = string.format("select albumId,albumName,albumIntro,tabSet,albumType,picture,updateTime from a_album where albumId in (%s) order by field (albumId,%s) limit %s,%s", field, field, start, page),
 	}
 
@@ -447,7 +447,7 @@ function query_fm()
 	else
 		http_resp(ERR_PARSE_POSTARGS)
 	end
-	queryfm_sql = string.format("select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where radioState=0 and %s limit %s ,%s", field, start, page)
+	queryfm_sql = string.format("select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification,isOffline from Radio_Info where radioState=0 and %s limit %s ,%s", field, start, page)
 
 	local res, err, errno, sqlstate = db:query(queryfm_sql)
 	if not res then
@@ -464,7 +464,7 @@ function query_show()
 		http_resp(ERR_PARSE_POSTARGS)
 	end
 
-	local queryShow_sql = string.format("select A.RadioID,A.ProgramID,A.ProgramName,A.Introduction,A.WebSite,B.createTime,B.updateTime,B.playTime,B.Day,B.PlayState from Program_Info A,Program_Time B where B.ProgramID=A.ProgramID and A.radioId='%s' and B.Day=CURDATE() and A.programState=0 group by A.ProgramName order by B.playTime limit %s,%s", radioId, start, page)
+	local queryShow_sql = string.format("select A.radioId,A.ProgramID,A.ProgramName,A.Introduction,A.WebSite,B.createTime,B.updateTime,B.playTime,B.Day,B.PlayState from Program_Info A,Program_Time B where B.ProgramID=A.ProgramID and A.radioId='%s' and B.Day=CURDATE() and A.programState=0 group by A.ProgramName order by B.playTime limit %s,%s", radioId, start, page)
 	local res, err = db:query(queryShow_sql)
 	if not res then
 		ngx.log(ngx.ERR, err)
