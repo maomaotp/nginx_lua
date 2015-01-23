@@ -32,24 +32,6 @@ http {
 		server 192.168.1.120:8090 weight=2;
 	}
 	server {
-		listen 8080;
-		limit_conn slimits 5;
-
-		if ($request_method !~ ^(POST)$ ) {
-			return 444;
-		}
-
-        location  = /query_top{
-			content_by_lua_file "nginx_lua/redis.lua";
-		}
-        location  = /lingbanfm{
-			content_by_lua_file "nginx_lua/mysql.lua";
-		}
-		location  = /test{
-			content_by_lua_file "nginx_lua/json.lua";
-		}
-    }
-	server {
 		listen 8090;
 		limit_conn slimits 5;
 

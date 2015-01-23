@@ -46,6 +46,9 @@ local ERR_FAIL_DURATION = 80022
 local ERR_FAIL_STATICSNUM = 80023
 local ERR_FAIL_ORDERLIST = 80024
 local ERR_FAIL_HOTWORDS = 80025
+local ERR_FAIL_FM = 80026
+local ERR_FAIL_CITY = 80027
+local ERR_FAIL_SHOW = 80028
 
 --[[lua写日志
 function fm_log(opName, code, err)
@@ -156,6 +159,9 @@ function http_resp(code)
 		[80023] = "更新用户行为统计数据信息失败",
 		[80024] = "获取节目列表失败",
 		[80025] = "获取热词失败",
+		[80026] = "获取电台信息错误",
+		[80027] = "获取城市电台信息错误",
+		[80028] = "获取传播单信息失败",
 	}
 
 	close_db()
@@ -426,12 +432,70 @@ function hot_words()
 	ngx.say(cjson.encode(red_res))
 end
 
---函数入口
+
+function query_fm()
+	local city_name = args["cityName"]	
+	local radio_level = args["radioLevel"]	
+	local classification = args["classification"]
+
+	if not city_name then
+		field = string.format("cityName='%s'", city_name)
+	elseif not radio_level then
+		field = string.format("radioLevel='%s'", radio_level)
+	elseif not classification then
+		field = string.format("classification='%s'", classification)
+	else
+		http_resp(ERR_PARSE_POSTARGS)
+	end
+	queryfm_sql = string.format("select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where radioState=0 and %s limit %s ,%s", field, start, page)
+
+	local res, err, errno, sqlstate = db:query(queryfm_sql)
+	if not res then
+		ngx.log(ngx.ERR, err)
+		http_resp(ERR_FAIL_FM)
+	end
+
+	ngx.say(cjson.encode(res))
+end
+
+function query_show()
+	local radioId = args["radioId"]
+	if not radioId then
+		http_resp(ERR_PARSE_POSTARGS)
+	end
+
+	local queryShow_sql = string.format("select A.RadioID,A.ProgramID,A.ProgramName,A.Introduction,A.WebSite,B.createTime,B.updateTime,B.playTime,B.Day,B.PlayState from Program_Info A,Program_Time B where B.ProgramID=A.ProgramID and A.radioId='%s' and B.Day=CURDATE() and A.programState=0 group by A.ProgramName order by B.playTime limit %s,%s", radioId, start, page)
+	local res, err = db:query(queryShow_sql)
+	if not res then
+		ngx.log(ngx.ERR, err)
+		http_resp(ERR_FAIL_SHOW)
+	end
+
+	ngx.say(cjson.encode(res))
+end
+
+function query_city() 
+	local provinceSpell = args["provinceSpell"]	
+	if not provinceSpell then
+		http_resp(ERR_PARSE_POSTARGS)
+	end
+	
+	local queryCity_sql = string.format("select cityName from Radio_Info where provinceSpell='%s' group by cityName limit %s,%s", provinceSpell, start, page)
+	local res, err = db:query(queryCity_sql)
+	if not res then
+		ngx.log(ngx.ERR, err)
+		http_resp(ERR_FAIL_CITY)
+	end
+
+	ngx.say(cjson.encode(res))
+end
+
 function main()
 	init_db()
 	parse_postargs()
 
 	local op_action = {
+		--点播
 		["slackerRadio"] = function() return radio_recommend() end,
 		["programInfo"] = function() return program_info() end,
 		["programList"] = function() return program_list() end,
@@ -440,6 +504,10 @@ function main()
 		["myprogram"] = function() return order_list() end,  --获取收藏/预定节目列表
 		["hotwords"] = function() return hot_words() end,
 		["search"] = function() return search() end,
+		--直播二期接口
+		["queryCity"] = function() return query_city() end,
+		["queryShow"] = function() return query_show() end,
+		["queryFm"] = function() return query_fm() end,
 	}
 
 	opName = args["opName"]
