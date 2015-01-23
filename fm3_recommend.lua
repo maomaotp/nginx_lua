@@ -384,12 +384,15 @@ end
 function program_list()
 	local radioId = args["radioId"]
 	local programId = args["programId"]
+	local albumId = args["albumId"]
 	local select_sql = nil
 
 	if radioId then
-		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where radioId='%s' order by playTime limit %d,%d", radioId, start, page)
+		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where radioId='%s' limit %d,%d", radioId, start, page)
 	elseif programId then
 		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where programType=(select programType from a_program where programId='%s') limit %d,%d", programId, start, page)
+	elseif albumId then
+		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where albumId='%s' limit %d,%d", albumId, start, page)
 	else
 		ngx.log(ngx.ERR, ERR_NULL_RADIOALBUM)
 		http_resp(ERR_NULL_RADIOALBUM)
