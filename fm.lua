@@ -8,17 +8,14 @@ events {
 	worker_connections 2048;
 }
 http {
-	default_type application/json;
+#default_type application/json;
+	default_type application/octet-stream;
 	#限制一个IP最多的并发连接数
 	limit_conn_zone $binary_remote_addr zone=slimits:5m;
 
 	#客户端请求包体最大值限制
 	client_max_body_size 100k;
 
-	#开启ssl加密
-	ssl on;
-	ssl_certificate ../conf/ca.crt;
-	ssl_certificate_key ../conf/server.key;
 
 
 	log_format access_log '[$time_local] $remote_addr $request_uri '
@@ -32,8 +29,21 @@ http {
 		server 192.168.1.120:8090 weight=2;
 	}
 	server {
+		listen 8000;
+		server_name  localhost;
+		root    /home/db_bak;
+		autoindex on;
+		autoindex_exact_size off;
+	}
+	server {
 		listen 8090;
 		limit_conn slimits 5;
+
+		#开启ssl加密
+		ssl on;
+		ssl_certificate ../conf/ca.crt;
+		ssl_certificate_key ../conf/server.key;
+
 
 		#只允许post方法，如果需要get方法将 POST 改为  POST|GET
 		if ($request_method !~ ^(POST)$ ) {
