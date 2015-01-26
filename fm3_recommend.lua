@@ -146,7 +146,7 @@ function http_resp(code)
 		[80010] = "不存在的节目类型",
 		[80011] = "关键词为null",
 		[80012] = "错误的ptype类型",
-		[80013] = "获取手机唯一标识码错误",
+		[80013] = "手机标识码或用户ID不可为空",
 		[80014] = "获取个性电台失败",
 		[80015] = "电台ID和专辑ID不可同时为空",
 		[80016] = "获取专辑或电台信息失败",
@@ -173,13 +173,13 @@ end
 --获取个性电台
 function radio_recommend()
 	local select_sql = nil
-	local phoneIdentify = args["phoneIdentify"]
+	local userId = args["userId"]
 	local programType = args["programType"]
 
-	if not phoneIdentify then 
+	if not userId then 
 		ngx.log(ngx.ERR, ERR_NULL_PHONEIDENTIFY)
 		http_resp(ERR_NULL_PHONEIDENTIFY)
-	end
+	end 
 
 	local src_sql = "select programId,programName,programUri,compere,picture,programIntro,radioId,albumId,programType,secondLevel,duration from a_program"
 	if not programType or (programType == "") then
@@ -201,7 +201,7 @@ function radio_recommend()
 	ngx.say(cjson.encode(res))
 
 	--更新用户标签
-	local user_sql = string.format("insert into u_userInfo (userId,userTag) values('%s', '%s') on duplicate key update userTag='%s'", phoneIdentify, programType, programType)
+	local user_sql = string.format("insert into u_userInfo (userId,userTag) values('%s', '%s') on duplicate key update userTag='%s'", userId, programType, programType)
 	local res, err = db:query(user_sql)
 	if not res then
 		ngx.log(ngx.ERR, err)

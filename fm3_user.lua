@@ -29,23 +29,6 @@ local ERR_FAIL_COMMENT = 90010
 local ERR_FAIL_ADDPLAUD = 90011
 local ERR_FAIL_GETCOMMENT = 90012
 
-local err_array = {
-	[0] = "success",
-	[90000] = "请求方法错误",
-	[90001] = "请求参数不完整",
-	[90002] = "获取用户信息失败",
-	[90003] = "用户ID已存在",
-	[90004] = "用户注册失败",
-	[90005] = "密码错误",
-	[90006] = "登陆类型错误",
-	[90007] = "更新用户信息失败",
-	[90008] = "增加用户消息失败",
-	[90009] = "获取用户消息失败",
-	[90010] = "用户评论失败",
-	[90011] = "评论点赞失败",
-	[90012] = "获取节目评论信息失败",
-}
-
 --读取配置文件
 function get_json()
 	local f = assert(io.open(CONFIG_FILE, "r"))
@@ -63,7 +46,7 @@ function http_resp(code)
 		[90002] = "获取用户信息失败",
 		[90003] = "用户ID已存在",
 		[90004] = "用户注册失败",
-		[90005] = "密码错误",
+		[90005] = "用户名或密码错误",
 		[90006] = "登陆类型错误",
 		[90007] = "更新用户信息失败",
 		[90008] = "增加用户消息失败",
@@ -173,16 +156,16 @@ function user_login()
 			ngx.log(ngx.ERR, ERR_NULL_FIELD)
 			http_resp(ERR_NULL_FIELD)
 		end
-		local login_sql = string.format("select count(*) from u_userInfo where userId='%s' and password='%s'", userId, password)
+		local login_sql = string.format("select userId,sex,picture,nickname,userTag from u_userInfo where userId='%s' and password='%s'", userId, password)
 		local res, err = db:query(login_sql)
 		if not res then
 			ngx.log(ngx.ERR, err)
 			http_resp(ERR_GET_USERINFO)
 		end
-		local count = tonumber(res[1]["count(*)"])
-		if (count == 0) then
-			http_resp(ERR_GET_USERINFO)
+		if next(res) == nil then
+			http_resp(ERR_ERR_PASSWORD)
 		end
+		ngx.say(cjson.encode(res))
 	elseif(loginWay == 2) then
 		local qq = args["qq"]	
 		if not qq then 
@@ -220,7 +203,9 @@ function user_login()
 		ngx.log(ngx.ERR, ERR_FAIL_UPDATE)
 	end
 
-	return OK_RES
+	if (loginWay ~= 1) then
+		return OK_RES
+	end
 end
 
 function user_update()
