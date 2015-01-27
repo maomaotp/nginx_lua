@@ -156,7 +156,7 @@ function user_login()
 			ngx.log(ngx.ERR, ERR_NULL_FIELD)
 			http_resp(ERR_NULL_FIELD)
 		end
-		local login_sql = string.format("select userId,sex,picture,nickname,userTag from u_userInfo where userId='%s' and password='%s'", userId, password)
+		local login_sql = string.format("select userId,sex,picture,nickname,userTag,telephone,email from u_userInfo where userId='%s' and password='%s'", userId, password)
 		local res, err = db:query(login_sql)
 		if not res then
 			ngx.log(ngx.ERR, err)

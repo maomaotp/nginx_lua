@@ -8,8 +8,8 @@ events {
 	worker_connections 2048;
 }
 http {
-#default_type application/json;
-	default_type application/octet-stream;
+	default_type application/json;
+	#default_type application/octet-stream;
 	#限制一个IP最多的并发连接数
 	limit_conn_zone $binary_remote_addr zone=slimits:5m;
 
@@ -28,8 +28,10 @@ http {
 	upstream mysvr{
 		server 192.168.1.120:8090 weight=2;
 	}
+	#下载功能
 	server {
 		listen 8000;
+		sendfile on;
 		server_name  localhost;
 		root    /home/db_bak;
 		autoindex on;
@@ -58,9 +60,10 @@ http {
 		}
 		location = /search{
 			echo_location /fm;
-			echo_location /index.php;
+			echo_location /search.php;
 		}
 		location ~ \.php$ {
+			echo "php?";
 			fastcgi_pass   127.0.0.1:9000;
             fastcgi_index  index.php;
             fastcgi_param  SCRIPT_FILENAME  /home/work/php$fastcgi_script_name;
