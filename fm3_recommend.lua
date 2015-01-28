@@ -438,11 +438,11 @@ function query_fm()
 	local radio_level = args["radioLevel"]	
 	local classification = args["classification"]
 
-	if not city_name then
+	if city_name then
 		field = string.format("cityName='%s'", city_name)
-	elseif not radio_level then
+	elseif radio_level then
 		field = string.format("radioLevel='%s'", radio_level)
-	elseif not classification then
+	elseif classification then
 		field = string.format("classification='%s'", classification)
 	else
 		http_resp(ERR_PARSE_POSTARGS)
