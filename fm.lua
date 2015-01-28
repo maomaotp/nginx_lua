@@ -65,7 +65,7 @@ http {
 		location ~ \.php$ {
 			echo "php?";
 			fastcgi_pass   127.0.0.1:9000;
-            fastcgi_index  index.php;
+            fastcgi_index  search.php;
             fastcgi_param  SCRIPT_FILENAME  /home/work/php$fastcgi_script_name;
 			include        fastcgi_params;
         }

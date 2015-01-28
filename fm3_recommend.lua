@@ -391,18 +391,20 @@ function program_list()
 	local radioId = args["radioId"]
 	local programId = args["programId"]
 	local albumId = args["albumId"]
-	local select_sql = nil
+	local field = nil
 
 	if radioId then
-		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where radioId='%s' limit %d,%d", radioId, start, page)
+		field = string.format("where radioId='%s'", radioId)
 	elseif programId then
-		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where programType=(select programType from a_program where programId='%s') limit %d,%d", programId, start, page)
+		field = string.format("where programType=(select programType from a_program where programId='%s')", programId)
 	elseif albumId then
-		select_sql = string.format("select programId,programName,programUri,playTime,bytes from a_program where albumId='%s' limit %d,%d", albumId, start, page)
+		field = string.format("where albumId='%s'", albumId)
 	else
 		ngx.log(ngx.ERR, ERR_NULL_RADIOALBUM)
 		http_resp(ERR_NULL_RADIOALBUM)
 	end
+
+	local select_sql = string.format("select programId,programName,programUri,programIntro,radioId,albumId,compere,picture,programType,secondLevel,tabSet from a_program %s limit %d,%d", field, start, page)
 
 	local res, err = db:query(select_sql)
 	if not res then
