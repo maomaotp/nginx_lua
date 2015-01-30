@@ -60,12 +60,11 @@ http {
 		}
 		location = /search{
 			echo_location /fm;
-			echo_location /search.php;
+			echo_location /index.php;
 		}
 		location ~ \.php$ {
-			echo "php?";
 			fastcgi_pass   127.0.0.1:9000;
-            fastcgi_index  search.php;
+            fastcgi_index  index.php;
             fastcgi_param  SCRIPT_FILENAME  /home/work/php$fastcgi_script_name;
 			include        fastcgi_params;
         }
