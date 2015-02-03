@@ -20,10 +20,10 @@ function main()
 	switch ($ptype)
 	{
 		case 1:
-			$query_sql = "select programId,programName,programUri,programIntro from a_program where MATCH(searchindex) AGAINST('$unicode') limit $start,$page";
+			$query_sql = "select programId,programName,programUri,programIntro,radioId,albumId,compere,picture,programType,secondLevel,tabSet from a_program where MATCH(searchindex) AGAINST('$unicode') limit $start,$page";
 			break;
 		case 2:
-			$query_sql = "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where radioState=0 and (nameCn like '%%$keywords%%' or nameEn like '%%$keywords%%') limit $start,$page";
+			$query_sql = "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification,isOffline from Radio_Info where radioState=0 and (nameCn like '%%$keywords%%' or nameEn like '%%$keywords%%') limit $start,$page";
 			break;
 		case 3:
 			$query_sql = "select albumId,albumName,albumIntro,albumType,picture,tabSet from a_album where flag=1 and(albumName like '%%$keywords%%' or tabset like '%%$keywords%%') limit $start,$page";
