@@ -259,7 +259,7 @@ function top_list()
 	end
 
 	local action = {
-		[1] = string.format("select programId,programName,programUri,compere,radioId,albumId,picture,programType,secondLevel,tabSet from a_program where programId in (%s)",field),
+		[1] = string.format("select programId,programName,programUri,compere,radioId,albumId,picture,programType,secondLevel,tabSet,duration from a_program where programId in (%s)",field),
 		[2] = string.format("select radioId,nameCn,nameEn,url,introduction,radioLevel,provinceSpell,cityName,logo,classification,isOffline from Radio_Info where radioId in (%s) order by field (radioId,%s) limit %s,%s", field, field, start, page),
 		[3] = string.format("select albumId,albumName,albumIntro,tabSet,albumType,picture,updateTime from a_album where albumId in (%s) order by field (albumId,%s) limit %s,%s", field, field, start, page),
 	}
@@ -377,7 +377,7 @@ function order_list()
 		--切掉字符串末尾的','
 		field = string.sub(field, 0,-2)
 	
-		local list_sql = string.format("select programId,programName,programUri,programIntro,radioId,albumId,compere,picture,programType,secondLevel,tabSet from a_program where programId in (%s)",field)
+		local list_sql = string.format("select programId,programName,programUri,programIntro,radioId,albumId,compere,picture,programType,secondLevel,tabSet,duration from a_program where programId in (%s)",field)
 		local res, err = db:query(list_sql)
 		if not res then
 			ngx.log(ngx.ERR, err)
@@ -404,7 +404,7 @@ function program_list()
 		http_resp(ERR_NULL_RADIOALBUM)
 	end
 
-	local select_sql = string.format("select programId,programName,programUri,programIntro,radioId,albumId,compere,picture,programType,secondLevel,tabSet from a_program %s limit %d,%d", field, start, page)
+	local select_sql = string.format("select programId,programName,programUri,programIntro,radioId,albumId,compere,picture,programType,secondLevel,tabSet,duration from a_program %s limit %d,%d", field, start, page)
 
 	local res, err = db:query(select_sql)
 	if not res then
