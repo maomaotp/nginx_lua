@@ -3,6 +3,7 @@ worker_processes  2;
 pid logs/nginx.pid;
 user root;
 
+#test
 events {
 	use epoll;
 	worker_connections 2048;
