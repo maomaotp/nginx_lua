@@ -32,6 +32,7 @@ arr	index.php	/^	$arr = str_split($str, 2);$/;"	v
 close_db	fm3_recommend.lua	/^function close_db()$/;"	f
 close_db	fm3_user.lua	/^function close_db()$/;"	f
 close_mysql	mysql.lua	/^function close_mysql()$/;"	f
+close_mysql	user.lua	/^function close_mysql()$/;"	f
 close_redis	redis.lua	/^function close_redis()$/;"	f
 connection	index.php	/^	$connection = init_db();$/;"	v
 connection	index.php	/^	$connection = mysql_connect($host, $user, $pass);$/;"	v
@@ -41,6 +42,7 @@ dec	index.php	/^	    $dec = hexdec(bin2hex($tmp));$/;"	v
 encoding	index.php	/^function str2Unicode($str, $encoding = 'UTF-8') $/;"	v
 error_res	mysql.lua	/^function error_res(err_code)	$/;"	f
 error_res	redis.lua	/^function error_res(err_code)	$/;"	f
+error_res	user.lua	/^function error_res(err_code)	$/;"	f
 fm_log	fm3_recommend.lua	/^function fm_log(opName, code, err)$/;"	f
 get_comment	fm3_user.lua	/^function get_comment()$/;"	f
 get_json	fm3_user.lua	/^function get_json()$/;"	f
@@ -53,6 +55,7 @@ init_db	fm3_recommend.lua	/^function init_db()$/;"	f
 init_db	fm3_user.lua	/^function init_db()$/;"	f
 init_db	index.php	/^function init_db()$/;"	f
 init_mysql	mysql.lua	/^function init_mysql()$/;"	f
+init_mysql	user.lua	/^function init_mysql()$/;"	f
 init_redis	json.lua	/^function init_redis()$/;"	f
 init_redis	redis.lua	/^function init_redis()$/;"	f
 json	index.php	/^	$json = json_encode($records); $/;"	v
@@ -64,6 +67,8 @@ main	index.php	/^function main()$/;"	f
 main	json.lua	/^function main()$/;"	f
 main	mysql.lua	/^function main()$/;"	f
 main	redis.lua	/^function main()$/;"	f
+main	test.lua	/^function main()$/;"	f
+main	user.lua	/^function main()$/;"	f
 order_list	fm3_recommend.lua	/^function order_list()$/;"	f
 page	index.php	/^		$page = 20;$/;"	v
 page	index.php	/^	$page = $_POST["page"];$/;"	v
@@ -71,6 +76,7 @@ parse_postargs	fm3_recommend.lua	/^function parse_postargs()$/;"	f
 parse_postargs	fm3_user.lua	/^function parse_postargs()$/;"	f
 parse_postargs	mysql.lua	/^function parse_postargs()$/;"	f
 parse_postargs	redis.lua	/^function parse_postargs()$/;"	f
+parse_postargs	user.lua	/^function parse_postargs()$/;"	f
 pass	index.php	/^	$pass = "lingban2014";$/;"	v
 programId	index.php	/^			$programId = $r["programId"];$/;"	v
 program_info	fm3_recommend.lua	/^function program_info()	$/;"	f
@@ -85,8 +91,8 @@ query_fm	mysql.lua	/^function query_fm(city_name, radio_level, classification)$/
 query_show	fm3_recommend.lua	/^function query_show()$/;"	f
 query_show	mysql.lua	/^function query_show(radioId)$/;"	f
 query_sql	index.php	/^			$query_sql = "select albumId,albumName,albumIntro,albumType,picture,tabSet from a_album where flag=1 and(albumName like '%%$keywords%%' or tabset like '%%$keywords%%') limit $start,$page";$/;"	v
-query_sql	index.php	/^			$query_sql = "select programId,programName,programUri,programIntro from a_program where MATCH(searchindex) AGAINST('$unicode') limit $start,$page";$/;"	v
-query_sql	index.php	/^			$query_sql = "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification from Radio_Info where radioState=0 and (nameCn like '%%$keywords%%' or nameEn like '%%$keywords%%') limit $start,$page";$/;"	v
+query_sql	index.php	/^			$query_sql = "select programId,programName,programUri,programIntro,radioId,albumId,compere,picture,programType,secondLevel,tabSet from a_program where MATCH(searchindex) AGAINST('$unicode') limit $start,$page";$/;"	v
+query_sql	index.php	/^			$query_sql = "select radioId,nameCn,nameEn,url,webSite,introduction,address,zip,scheduleURL,radioLevel,provinceSpell,cityName,createTime,updateTime,logo,classification,isOffline from Radio_Info where radioState=0 and (nameCn like '%%$keywords%%' or nameEn like '%%$keywords%%') limit $start,$page";$/;"	v
 query_sql	index.php	/^	$query_sql = "select programId,programName,programUri,programIntro from a_program where MATCH(searchindex) AGAINST('$unicode')order by duration limit $start,$page";$/;"	v
 query_top	redis.lua	/^function query_top(key)$/;"	f
 radio_recommend	fm3_recommend.lua	/^function radio_recommend()$/;"	f
@@ -112,4 +118,5 @@ user	index.php	/^	$user = "lingbanfm";$/;"	v
 user_login	fm3_user.lua	/^function user_login()$/;"	f
 user_message	fm3_user.lua	/^function user_message()$/;"	f
 user_register	fm3_user.lua	/^function user_register()	$/;"	f
+user_register	user.lua	/^function user_register(userId, password, nickname)	$/;"	f
 user_update	fm3_user.lua	/^function user_update()$/;"	f

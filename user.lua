@@ -103,6 +103,7 @@ end
 
 --函数入口
 function main()
+    ngx.say("hello,world")
 	local res_code
 	local res_code = init_mysql()
 	if ( res_code ~= 0 ) then
